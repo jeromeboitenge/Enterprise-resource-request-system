@@ -4,7 +4,7 @@ export enum ApprovalDecision {
 }
 
 export interface ApprovalInterface {
-    _id?: string;
+
     requestId: string;
     approverId: string;
     decision: ApprovalDecision;
