@@ -6,7 +6,7 @@ export enum RequestStatus {
 }
 
 export interface ResourceRequestInterface {
-    _id?: string;
+
     userId: string;
     departmentId: string;
     resourceName: string;
