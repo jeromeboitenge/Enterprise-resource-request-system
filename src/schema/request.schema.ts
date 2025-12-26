@@ -8,6 +8,8 @@ export const createRequestSchema = Joi.object({
 });
 
 export const updateRequestStatusSchema = Joi.object({
-    status: Joi.string().valid('approved', 'rejected').required(),
+    status: Joi.string()
+        .valid('approved', 'rejected')
+        .required(),
     comment: Joi.string().optional()
 });
