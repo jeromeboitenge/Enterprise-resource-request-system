@@ -1,14 +1,14 @@
 export interface UserInterface {
-    _id?: string;
+
     name: string,
     email: string,
     password: string
-    role: roles
+    role: Roles
     department: string
     createdAt: Date
 }
 
-enum roles {
+export enum Roles {
     Employee = 'employee',
     Manager = 'manager',
     Admin = 'admin',
