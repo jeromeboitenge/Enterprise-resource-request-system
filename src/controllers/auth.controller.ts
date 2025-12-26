@@ -38,11 +38,11 @@ export const register = asyncHandler(
         const token = jwt.sign(
             { userId: user._id, role: user.role },
             config.jwtSecret,
-            { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
+            { expiresIn: '1d' }
         );
 
         // Remove password from response
-        const userResponse = user.toObject();
+        const userResponse: any = user.toObject();
         delete userResponse.password;
 
         ApiResponse.created('User registered successfully', {
@@ -77,11 +77,11 @@ export const login = asyncHandler(
         const token = jwt.sign(
             { userId: user._id, role: user.role },
             config.jwtSecret,
-            { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
+            { expiresIn: '1d' }
         );
 
         // Remove password from response
-        const userResponse = user.toObject();
+        const userResponse: any = user.toObject();
         delete userResponse.password;
 
         ApiResponse.success('Login successful', {

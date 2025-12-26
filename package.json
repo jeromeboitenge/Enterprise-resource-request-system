@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "A professional backend for managing company resource requests, approvals, and payments.",
   "main": "dist/server.js",
-  "type": "module",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "start": "node dist/server.js",

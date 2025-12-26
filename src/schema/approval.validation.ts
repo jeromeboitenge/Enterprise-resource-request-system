@@ -1,8 +1,5 @@
 import Joi from 'joi';
 
 export const approvalDecisionSchema = Joi.object({
-    decision: Joi.string()
-        .valid('approved', 'rejected')
-        .required(),
-    comment: Joi.string().optional()
+    comment: Joi.string().optional().allow('').max(500)
 });
