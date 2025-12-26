@@ -1,7 +1,11 @@
-export interface userInterface {
+export interface UserInterface {
+    _id?: string;
     name: string,
     email: string,
+    password: string
     role: roles
+    department: string
+    createdAt: Date
 }
 
 enum roles {
