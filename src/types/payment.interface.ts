@@ -5,7 +5,7 @@ export enum PaymentMethod {
 }
 
 export interface PaymentInterface {
-    _id?: string;
+
     requestId: string;
     financeOfficerId: string;
     amountPaid: number;
