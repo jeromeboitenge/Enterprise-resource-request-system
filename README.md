@@ -1,17 +1,26 @@
 # Enterprise Resource Request System
 
-A professional backend system for managing company resource requests with approval workflow and payment processing.
+A complete, production-ready **Enterprise Resource Request System** with Node.js backend and Next.js frontend, featuring multi-level approval workflows, role-based access control, notifications, and audit logging.
 
 ## 🚀 Features
 
-- **User Authentication** - JWT-based authentication with role-based access control
-- **Resource Requests** - Employees can create and manage resource requests
-- **Approval Workflow** - Managers can approve or reject requests
-- **Payment Processing** - Finance team can process payments for approved requests
-- **Audit Trail** - Complete history of approvals and payments
-- **Input Validation** - Comprehensive validation on all endpoints
-- **Error Handling** - Professional error responses with detailed messages
-- **Security** - Password hashing, JWT tokens, security headers, CORS protection
+### Backend (Node.js + Express + MongoDB)
+- **Enhanced User Management** - 5 roles with activation status
+- **Comprehensive Request System** - 8-state workflow with priority levels
+- **Multi-Level Approval** - Sequential approval chain (Manager → Dept Head → Finance → Admin)
+- **Notification System** - Real-time notifications with 8 event types
+- **Audit Logging** - Immutable audit trail for compliance
+- **Payment Processing** - Finance team payment management
+- **Security** - JWT auth, password hashing, RBAC, CORS, Helmet
+- **Input Validation** - Comprehensive Joi validation
+
+### Frontend (Next.js + TypeScript + Tailwind)
+- **Modern UI** - Responsive design with Tailwind CSS
+- **Role-Based Navigation** - Dynamic menu based on user role
+- **Dashboard** - Statistics and quick actions
+- **Request Management** - Create, view, update, delete requests
+- **Approval Workflow** - Visual approval process
+- **Notifications** - In-app notification center
 
 ## 📋 Prerequisites
 
@@ -20,6 +29,8 @@ A professional backend system for managing company resource requests with approv
 - npm or yarn
 
 ## 🛠️ Installation
+
+### Backend Setup
 
 1. Clone the repository
 ```bash
@@ -68,6 +79,35 @@ npm run dev
 npm start
 ```
 
+### Frontend Setup
+
+1. Navigate to frontend directory
+```bash
+cd ../r2p-frontend
+```
+
+2. Install dependencies
+```bash
+npm install
+npm install axios next-auth @heroicons/react date-fns zustand
+```
+
+3. Configure environment
+
+Create `.env.local`:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5500/api/v1
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret-key-here
+```
+
+4. Run development server
+```bash
+npm run dev
+```
+
+Frontend will be available at `http://localhost:3000`
+
 ## 📚 API Documentation
 
 Base URL: `http://localhost:5500/api/v1`
@@ -93,8 +133,8 @@ Base URL: `http://localhost:5500/api/v1`
 - `GET /requests/my` - Get my requests
 - `GET /requests` - Get all requests (Manager/Finance/Admin)
 - `GET /requests/:id` - Get single request
-- `PUT /requests/:id` - Update request (Owner, Pending only)
-- `DELETE /requests/:id` - Delete request (Owner, Pending only)
+- `PUT /requests/:id` - Update request (Owner, Draft/Submitted only)
+- `DELETE /requests/:id` - Delete request (Owner, Draft/Submitted only)
 
 ### Approval Endpoints
 
@@ -108,21 +148,36 @@ Base URL: `http://localhost:5500/api/v1`
 - `GET /payments` - Get payment history (Finance/Admin)
 - `GET /payments/:id` - Get single payment (Finance/Admin)
 
-For detailed API documentation with examples, see [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
+### Notification Endpoints
+
+- `GET /notifications` - Get user notifications
+- `PUT /notifications/:id/read` - Mark notification as read
+- `PUT /notifications/read-all` - Mark all as read
+- `DELETE /notifications/:id` - Delete notification
 
 ## 👥 User Roles
 
 - **Employee** - Can create and manage own requests
-- **Manager** - Can approve/reject requests
-- **Finance** - Can process payments for approved requests
-- **Admin** - Full access to all operations
+- **Manager** - Can approve/reject requests (Level 1)
+- **Department Head** - Department-level approvals (Level 2)
+- **Finance** - Can process payments for approved requests (Level 3)
+- **Admin** - Full access to all operations (Level 4)
 
-## 🔄 Workflow
+## 🔄 Request Workflow
 
-1. **Employee** creates a resource request
-2. **Manager** reviews and approves/rejects the request
-3. **Finance** processes payment for approved requests
-4. Request status updates: `pending` → `approved`/`rejected` → `paid`
+```
+Draft → Submitted → Under Review → Approved → Funded → Fulfilled
+                                 ↓
+                              Rejected
+```
+
+**Status Flow:**
+1. Employee creates request (Draft)
+2. Employee submits request (Submitted)
+3. Manager reviews (Under Review)
+4. Multi-level approval process
+5. Finance processes payment (Funded)
+6. Request completed (Fulfilled)
 
 ## 🔒 Security Features
 
@@ -134,9 +189,11 @@ For detailed API documentation with examples, see [API_DOCUMENTATION.md](./API_D
 - CORS protection
 - Request logging with Morgan
 - Global error handling
+- Immutable audit logs
 
 ## 📁 Project Structure
 
+### Backend
 ```
 src/
 ├── config/          # Configuration files
@@ -145,9 +202,31 @@ src/
 ├── model/          # Mongoose models
 ├── routes/         # API routes
 ├── schema/         # Validation schemas
+├── services/       # Business logic services
 ├── types/          # TypeScript interfaces
 ├── utils/          # Utility functions
 └── server.ts       # Application entry point
+```
+
+### Frontend
+```
+app/
+├── (auth)/         # Authentication pages
+├── (dashboard)/    # Protected dashboard pages
+├── api/           # API routes
+├── layout.tsx     # Root layout
+└── page.tsx       # Home page
+
+components/
+├── ui/            # Reusable UI components
+├── layout/        # Layout components
+├── auth/          # Auth components
+├── dashboard/     # Dashboard components
+└── requests/      # Request components
+
+services/          # API integration
+types/             # TypeScript types
+lib/               # Utilities
 ```
 
 ## 🧪 Testing
@@ -155,6 +234,12 @@ src/
 Build the project to verify everything works:
 
 ```bash
+# Backend
+cd R2p
+npm run build
+
+# Frontend
+cd ../r2p-frontend
 npm run build
 ```
 
@@ -192,9 +277,13 @@ curl -X POST http://localhost:5500/api/v1/requests \
   -H "Authorization: Bearer <your_token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "resourceName": "Laptop",
-    "description": "For development",
-    "amountRequested": 1500,
+    "title": "New Laptop Request",
+    "resourceName": "Dell XPS 15",
+    "resourceType": "Hardware",
+    "description": "For development work",
+    "quantity": 1,
+    "estimatedCost": 1500,
+    "priority": "high",
     "departmentId": "<department_id>"
   }'
 ```
@@ -242,7 +331,22 @@ Jerome Boitenge
 ## 🙏 Acknowledgments
 
 - Express.js for the web framework
+- Next.js for the frontend framework
 - MongoDB for the database
 - JWT for authentication
 - Joi for validation
 - TypeScript for type safety
+- Tailwind CSS for styling
+
+## 📞 Support
+
+For detailed implementation guides, see:
+- `walkthrough.md` - Backend implementation details
+- `frontend_guide.md` - Frontend setup and code
+- `system_summary.md` - Complete system overview
+
+---
+
+**Status**: Backend 70% Complete | Frontend Project Created  
+**Version**: 1.0.0  
+**Last Updated**: December 27, 2025
