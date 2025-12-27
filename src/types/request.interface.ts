@@ -1,17 +1,33 @@
 export enum RequestStatus {
-    Pending = 'pending',
+    Draft = 'draft',
+    Submitted = 'submitted',
+    UnderReview = 'under_review',
     Approved = 'approved',
     Rejected = 'rejected',
-    Paid = 'paid'
+    Funded = 'funded',
+    Fulfilled = 'fulfilled',
+    Cancelled = 'cancelled'
+}
+
+export enum Priority {
+    Low = 'low',
+    Medium = 'medium',
+    High = 'high',
+    Urgent = 'urgent'
 }
 
 export interface ResourceRequestInterface {
-
     userId: string;
     departmentId: string;
+    title: string;
     resourceName: string;
+    resourceType: string;
     description?: string;
-    amountRequested: number;
+    quantity: number;
+    estimatedCost: number;
+    priority: Priority;
     status: RequestStatus;
     createdAt: Date;
+    updatedAt?: Date;
 }
+

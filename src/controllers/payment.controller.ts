@@ -39,9 +39,9 @@ export const processPayment = asyncHandler(
         }
 
         // Validate amount
-        if (amountPaid > request.amountRequested) {
+        if (amountPaid > request.estimatedCost) {
             throw ApiError.badRequest(
-                'Payment amount cannot exceed requested amount'
+                'Payment amount cannot exceed estimated cost'
             );
         }
 
@@ -53,8 +53,8 @@ export const processPayment = asyncHandler(
             paymentMethod
         });
 
-        // Update request status to paid
-        request.status = RequestStatus.Paid;
+        // Update request status to funded
+        request.status = RequestStatus.Funded;
         await request.save();
 
         await payment.populate('financeOfficerId', 'name email role');

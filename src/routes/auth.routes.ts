@@ -12,7 +12,7 @@ import { createUserSchema, loginSchema } from '../schema/user.validation';
 const router = Router();
 
 /**
- * @route   POST ¬
+ * @route   POST /api/v1/auth/register
  * @desc    Register a new user
  * @access  Public
  */

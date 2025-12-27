@@ -26,8 +26,8 @@ export const approveRequest = asyncHandler(
             throw ApiError.notFound('Request not found');
         }
 
-        // Check if request is pending
-        if (request.status !== RequestStatus.Pending) {
+        // Check if request is submitted
+        if (request.status !== RequestStatus.Submitted) {
             throw ApiError.badRequest(
                 `Request has already been ${request.status}`
             );
@@ -73,8 +73,8 @@ export const rejectRequest = asyncHandler(
             throw ApiError.notFound('Request not found');
         }
 
-        // Check if request is pending
-        if (request.status !== RequestStatus.Pending) {
+        // Check if request is submitted
+        if (request.status !== RequestStatus.Submitted) {
             throw ApiError.badRequest(
                 `Request has already been ${request.status}`
             );

@@ -1,17 +1,18 @@
 export interface UserInterface {
-
-    name: string,
-    email: string,
-    password: string
-    role: Roles
-    department: string
-    createdAt: Date
+    name: string;
+    email: string;
+    password: string;
+    role: Roles;
+    department: string;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt?: Date;
 }
 
 export enum Roles {
     Employee = 'employee',
     Manager = 'manager',
-    Admin = 'admin',
-    Finance = 'finance'
-
+    DepartmentHead = 'departmenthead',
+    Finance = 'finance',
+    Admin = 'admin'
 }

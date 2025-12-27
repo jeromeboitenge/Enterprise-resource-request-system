@@ -4,6 +4,7 @@ import departmentRoutes from "./department.routes";
 import requestRoutes from "./request.routes";
 import approvalRoutes from "./approval.routes";
 import paymentRoutes from "./payment.routes";
+import notificationRoutes from "./notification.routes";
 
 const routes: Router[] = [
     authRoutes,
@@ -23,5 +24,6 @@ mainRouter.use('/departments', departmentRoutes);
 mainRouter.use('/requests', requestRoutes);
 mainRouter.use('/approvals', approvalRoutes);
 mainRouter.use('/payments', paymentRoutes);
+mainRouter.use('/notifications', notificationRoutes);
 
 export { mainRouter };

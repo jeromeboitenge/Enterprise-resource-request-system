@@ -12,15 +12,19 @@ import { RequestStatus } from '../types/request.interface';
  */
 export const createRequest = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-        const { resourceName, description, amountRequested, departmentId } = req.body;
+        const { title, resourceName, resourceType, description, quantity, estimatedCost, priority, departmentId } = req.body;
 
         const request = await ResourceRequest.create({
             userId: req.user._id,
             departmentId,
+            title,
             resourceName,
+            resourceType,
             description,
-            amountRequested,
-            status: RequestStatus.Pending
+            quantity,
+            estimatedCost,
+            priority,
+            status: RequestStatus.Draft
         });
 
         await request.populate([
@@ -122,7 +126,7 @@ export const getRequest = asyncHandler(
  */
 export const updateRequest = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-        const { resourceName, description, amountRequested } = req.body;
+        const { title, resourceName, resourceType, description, quantity, estimatedCost, priority } = req.body;
 
         const request = await ResourceRequest.findById(req.params.id);
 
@@ -135,15 +139,19 @@ export const updateRequest = asyncHandler(
             throw ApiError.forbidden('You can only update your own requests');
         }
 
-        // Check if request is still pending
-        if (request.status !== RequestStatus.Pending) {
+        // Check if request is still in draft or submitted
+        if (![RequestStatus.Draft, RequestStatus.Submitted].includes(request.status)) {
             throw ApiError.badRequest('Cannot update request that has been processed');
         }
 
         // Update fields
+        if (title) request.title = title;
         if (resourceName) request.resourceName = resourceName;
+        if (resourceType) request.resourceType = resourceType;
         if (description !== undefined) request.description = description;
-        if (amountRequested) request.amountRequested = amountRequested;
+        if (quantity) request.quantity = quantity;
+        if (estimatedCost) request.estimatedCost = estimatedCost;
+        if (priority) request.priority = priority;
 
         await request.save();
         await request.populate([
@@ -173,8 +181,8 @@ export const deleteRequest = asyncHandler(
             throw ApiError.forbidden('You can only delete your own requests');
         }
 
-        // Check if request is still pending
-        if (request.status !== RequestStatus.Pending) {
+        // Check if request is still in draft or submitted
+        if (![RequestStatus.Draft, RequestStatus.Submitted].includes(request.status)) {
             throw ApiError.badRequest('Cannot delete request that has been processed');
         }
 

@@ -12,6 +12,14 @@ const DepartmentSchema: Schema = new Schema(
         },
         description: {
             type: String
+        },
+        managerId: {
+            type: Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        headId: {
+            type: Schema.Types.ObjectId,
+            ref: 'User'
         }
     },
     {
