@@ -4,16 +4,10 @@ import { ApiError } from '../utils/ApiError';
 import { ApiResponse } from '../utils/ApiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
 
-/**
- * Create a new department
- * @route POST /api/v1/departments
- * @access Private (Admin only)
- */
+
 export const createDepartment = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
         const { name, description } = req.body;
-
-        // Check if department already exists
         const existingDepartment = await Department.findOne({ name });
         if (existingDepartment) {
             throw ApiError.conflict('Department with this name already exists');

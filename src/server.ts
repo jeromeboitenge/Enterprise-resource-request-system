@@ -2,56 +2,64 @@ import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import { config as dotenv } from "dotenv";
-dotenv();
+import "dotenv/config";
+
 import { config, databaseConnection } from "./config";
 import { mainRouter } from "./routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
-
 
 const app: Express = express();
 
 // Security middleware
 app.use(helmet());
 
-// CORS configuration
-app.use(cors({
-    origin: process.env.CORS_ORIGIN || '*',
-    credentials: true
-}));
+// CORS
+app.use(
+    cors({
+        origin: process.env.CORS_ORIGIN || "*",
+        credentials: true,
+    })
+);
 
-// Request logging
-app.use(morgan('dev'));
+// Logging
+app.use(morgan("dev"));
 
-// Body parser
+// Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
+// Health check
 app.get("/", (req: Request, res: Response) => {
-    res.json({
+    res.status(200).json({
         success: true,
         message: "Enterprise Resource Request System API",
         version: "1.0.0",
-        status: "running"
+        status: "running",
     });
 });
 
-// API routes
+// Routes
 app.use(config.prefix, mainRouter);
 
-// 404 handler
+// 404
 app.use(notFoundHandler);
 
 // Global error handler
 app.use(errorHandler);
 
-// Database connection and server start
-databaseConnection().then(() => {
-    app.listen(config.port, () => console.log(`🚀 Server is running on port ${config.port}`));
-}).catch((error) => {
-    console.error('❌ Database connection failed:', error);
-    process.exit(1);
-});
+// ✅ Start server only after DB connection
+const startServer = async () => {
+    try {
+        await databaseConnection();
+        app.listen(config.port, () => {
+            console.log(`🚀 Server running on port ${config.port}`);
+        });
+    } catch (error) {
+        console.error("❌ Database connection failed:", error);
+        process.exit(1);
+    }
+};
+
+startServer();
 
 export default app;
