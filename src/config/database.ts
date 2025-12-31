@@ -7,7 +7,7 @@ export const databaseConnection = async (): Promise<void> => {
         const dbPassword = process.env.DB_PASSWORD as string;
 
         if (!dbUrl || !dbUsername || !dbPassword) {
-            throw new Error("❌ Missing database environment variables");
+            throw new Error("Missing database environment variables");
         }
 
         dbUrl = dbUrl
