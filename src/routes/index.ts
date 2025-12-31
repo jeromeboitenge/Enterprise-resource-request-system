@@ -17,10 +17,10 @@ const routes: Router[] = [
 const mainRouter = express.Router();
 
 // Mount auth routes
-mainRouter.use('/auth', authRoutes);
+mainRouter.use('/auth', authRoutes)
 
 // Mount other routes
-mainRouter.use('/departments', departmentRoutes);
+mainRouter.use('/departments', departmentRoutes)
 mainRouter.use('/requests', requestRoutes);
 mainRouter.use('/approvals', approvalRoutes);
 mainRouter.use('/payments', paymentRoutes);
