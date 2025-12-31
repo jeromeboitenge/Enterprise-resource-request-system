@@ -1,5 +1,6 @@
 import AuditLog from '../model/auditLog';
 import { AuditAction } from '../types/auditLog.interface';
+import logger from '../utils/logger';
 
 export class AuditService {
     /**
@@ -21,7 +22,7 @@ export class AuditService {
             });
         } catch (error) {
             // Log error but don't throw - audit logging should not break the main flow
-            console.error('Audit logging failed:', error);
+            logger.error('Audit logging failed:', error);
         }
     }
 

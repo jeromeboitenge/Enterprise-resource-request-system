@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import logger from "../utils/logger";
 
 export const databaseConnection = async (): Promise<void> => {
     try {
@@ -19,9 +20,10 @@ export const databaseConnection = async (): Promise<void> => {
 
         await mongoose.connect(dbUrl);
 
-        console.log("✅ MongoDB connected successfully");
+        logger.info("✅ MongoDB connected successfully");
     } catch (error) {
-        console.error("❌ MongoDB connection failed:", error);
+        logger.error("❌ MongoDB connection failed:", error);
         throw error; // VERY IMPORTANT
     }
 };
+

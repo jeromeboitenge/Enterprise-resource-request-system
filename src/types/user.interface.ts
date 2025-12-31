@@ -5,6 +5,9 @@ export interface UserInterface {
     role: Roles;
     department: string;
     isActive: boolean;
+    loginAttempts?: number;
+    lockUntil?: Date;
+    refreshToken?: string;
     createdAt: Date;
     updatedAt?: Date;
 }

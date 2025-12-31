@@ -5,8 +5,7 @@
     },
     "extends": [
         "eslint:recommended",
-        "plugin:@typescript-eslint/recommended",
-        "plugin:security/recommended"
+        "plugin:@typescript-eslint/recommended"
     ],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
@@ -15,8 +14,7 @@
         "project": "./tsconfig.json"
     },
     "plugins": [
-        "@typescript-eslint",
-        "security"
+        "@typescript-eslint"
     ],
     "rules": {
         "@typescript-eslint/no-explicit-any": "warn",
@@ -36,9 +34,7 @@
                     "error"
                 ]
             }
-        ],
-        "security/detect-object-injection": "off",
-        "security/detect-non-literal-fs-filename": "off"
+        ]
     },
     "ignorePatterns": [
         "dist",

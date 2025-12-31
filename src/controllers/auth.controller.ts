@@ -61,16 +61,51 @@ export const login = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
         const { email, password } = req.body;
 
-        // Find user by email
-        const user = await User.findOne({ email });
+        // Find user by email (include password and security fields)
+        const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
         if (!user) {
             throw ApiError.unauthorized('Invalid email or password');
+        }
+
+        // Check if account is locked
+        if (user.isLocked) {
+            // Calculate remaining lock time
+            const lockTimeRemaining = user.lockUntil
+                ? Math.ceil((user.lockUntil.getTime() - Date.now()) / 60000)
+                : 0;
+            throw ApiError.unauthorized(
+                `Account is temporarily locked due to multiple failed login attempts. Please try again in ${lockTimeRemaining} minutes.`
+            );
         }
 
         // Verify password
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            throw ApiError.unauthorized('Invalid email or password');
+            // Increment login attempts
+            await user.incLoginAttempts();
+
+            // Calculate remaining attempts
+            const remainingAttempts = 5 - (user.loginAttempts || 0) - 1;
+
+            if (remainingAttempts > 0) {
+                throw ApiError.unauthorized(
+                    `Invalid email or password. ${remainingAttempts} attempts remaining before account lockout.`
+                );
+            } else {
+                throw ApiError.unauthorized(
+                    'Invalid email or password. Account has been locked for 15 minutes due to multiple failed attempts.'
+                );
+            }
+        }
+
+        // Check if user is active
+        if (!user.isActive) {
+            throw ApiError.forbidden('Your account has been deactivated. Please contact an administrator.');
+        }
+
+        // Reset login attempts on successful login
+        if (user.loginAttempts && user.loginAttempts > 0) {
+            await user.resetLoginAttempts();
         }
 
         // Generate JWT token
@@ -80,9 +115,12 @@ export const login = asyncHandler(
             { expiresIn: '1d' }
         );
 
-        // Remove password from response
+        // Remove sensitive fields from response
         const userResponse: any = user.toObject();
         delete userResponse.password;
+        delete userResponse.loginAttempts;
+        delete userResponse.lockUntil;
+        delete userResponse.refreshToken;
 
         ApiResponse.success('Login successful', {
             user: userResponse,

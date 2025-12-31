@@ -8,6 +8,7 @@ import {
 import { authenticate } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate';
 import { createUserSchema, loginSchema } from '../schema/user.validation';
+import { authLimiter } from '../middleware/rate-limiter.middleware';
 
 const router = Router();
 
@@ -16,14 +17,14 @@ const router = Router();
  * @desc    Register a new user
  * @access  Public
  */
-router.post('/register', validate(createUserSchema), register);
+router.post('/register', authLimiter, validate(createUserSchema), register);
 
 /**
  * @route   POST /api/v1/auth/login
  * @desc    Login user
  * @access  Public
  */
-router.post('/login', validate(loginSchema), login);
+router.post('/login', authLimiter, validate(loginSchema), login);
 
 /**
  * @route   GET /api/v1/auth/profile
@@ -40,3 +41,4 @@ router.get('/profile', authenticate, getProfile);
 router.put('/profile', authenticate, updateProfile);
 
 export default router;
+

@@ -2,6 +2,7 @@ import Notification from '../model/notification';
 import { NotificationType } from '../types/notification.interface';
 import User from '../model/user';
 import { Roles } from '../types/user.interface';
+import logger from '../utils/logger';
 
 export class NotificationService {
     /**
@@ -17,7 +18,7 @@ export class NotificationService {
         try {
             return await Notification.create(data);
         } catch (error) {
-            console.error('Notification creation failed:', error);
+            logger.error('Notification creation failed:', error);
             return null;
         }
     }
@@ -39,7 +40,7 @@ export class NotificationService {
         try {
             return await Notification.insertMany(notifications);
         } catch (error) {
-            console.error('Bulk notification creation failed:', error);
+            logger.error('Bulk notification creation failed:', error);
             return [];
         }
     }
