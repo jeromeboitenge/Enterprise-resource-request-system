@@ -1,5 +1,5 @@
-import mongoose, { Schema, Document } from 'mongoose';
-import { ResourceRequestInterface, RequestStatus, Priority } from '../types/request.interface';
+import mongoose, { Schema, Document } from 'mongoose'
+import { ResourceRequestInterface, RequestStatus, Priority } from '../types/request.interface'
 
 export interface RequestDocument extends ResourceRequestInterface, Document { }
 
