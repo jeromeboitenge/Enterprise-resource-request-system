@@ -1,16 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import User from '../model/user';
-import { config } from '../config';
 import { ApiError } from '../utils/ApiError';
 import { responseService } from '../utils/ResponseService';
 import { asyncHandler } from '../utils/asyncHandler';
 import { logSecurityEvent } from '../utils/logger';
+import { generateAuthToken } from '../utils/tokenHelpers';
+import { formatUserForAuth } from '../utils/userHelpers';
+import { validateNoDuplicate, validateResourceExists } from '../utils/validationHelpers';
 import {
     ACCOUNT_LOCKOUT,
     HASHING,
-    JWT_CONFIG,
     AUTH_MESSAGES,
     formatMessage,
 } from '../constants';
@@ -66,9 +66,7 @@ export const register = asyncHandler(
 
         // Check if user already exists
         const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            throw ApiError.conflict(AUTH_MESSAGES.USER_EXISTS);
-        }
+        validateNoDuplicate(existingUser, 'User', 'email');
 
         // Hash password using bcrypt with configured salt rounds
         const hashedPassword = await bcrypt.hash(password, HASHING.SALT_ROUNDS);
@@ -82,16 +80,11 @@ export const register = asyncHandler(
             department
         });
 
-        // Generate JWT token with user ID and role
-        const token = jwt.sign(
-            { userId: user._id, role: user.role },
-            config.jwtSecret,
-            { expiresIn: JWT_CONFIG.DEFAULT_EXPIRES_IN }
-        );
+        // Generate JWT token using helper
+        const token = generateAuthToken(user._id.toString(), user.role);
 
-        // Remove password from response
-        const userResponse: any = user.toObject();
-        delete userResponse.password;
+        // Format user data for response (removes sensitive fields)
+        const userResponse = formatUserForAuth(user);
 
         // Log successful registration
         logSecurityEvent('user_registered', req, {
