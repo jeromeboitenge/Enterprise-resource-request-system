@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import Department from '../model/department';
 import { ApiError } from '../utils/ApiError';
-import { ApiResponse } from '../utils/ApiResponse';
+import { responseService } from '../utils/ResponseService';
 import { asyncHandler } from '../utils/asyncHandler';
 
 
@@ -15,7 +15,12 @@ export const createDepartment = asyncHandler(
 
         const department = await Department.create({ name, description });
 
-        ApiResponse.created('Department created successfully', { department }).send(res);
+        return responseService.response({
+            res,
+            data: { department },
+            message: 'Department created successfully',
+            statusCode: 201
+        });
     }
 );
 
@@ -28,10 +33,15 @@ export const getAllDepartments = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
         const departments = await Department.find().sort({ name: 1 });
 
-        ApiResponse.success('Departments retrieved successfully', {
-            count: departments.length,
-            departments
-        }).send(res);
+        return responseService.response({
+            res,
+            data: {
+                count: departments.length,
+                departments
+            },
+            message: 'Departments retrieved successfully',
+            statusCode: 200
+        });
     }
 );
 
@@ -48,7 +58,12 @@ export const getDepartment = asyncHandler(
             throw ApiError.notFound('Department not found');
         }
 
-        ApiResponse.success('Department retrieved successfully', { department }).send(res);
+        return responseService.response({
+            res,
+            data: { department },
+            message: 'Department retrieved successfully',
+            statusCode: 200
+        });
     }
 );
 
@@ -82,7 +97,12 @@ export const updateDepartment = asyncHandler(
             throw ApiError.notFound('Department not found');
         }
 
-        ApiResponse.success('Department updated successfully', { department }).send(res);
+        return responseService.response({
+            res,
+            data: { department },
+            message: 'Department updated successfully',
+            statusCode: 200
+        });
     }
 );
 
@@ -99,6 +119,11 @@ export const deleteDepartment = asyncHandler(
             throw ApiError.notFound('Department not found');
         }
 
-        ApiResponse.success('Department deleted successfully', { department }).send(res);
+        return responseService.response({
+            res,
+            data: { department },
+            message: 'Department deleted successfully',
+            statusCode: 200
+        });
     }
 );

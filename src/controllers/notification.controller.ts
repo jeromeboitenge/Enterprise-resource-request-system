@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { NotificationService } from '../services/notification.service';
-import { ApiResponse } from '../utils/ApiResponse';
+import { responseService } from '../utils/ResponseService';
 import { ApiError } from '../utils/ApiError';
 import { asyncHandler } from '../utils/asyncHandler';
 
@@ -22,7 +22,12 @@ export const getNotifications = asyncHandler(
             }
         );
 
-        ApiResponse.success('Notifications retrieved successfully', result).send(res);
+        return responseService.response({
+            res,
+            data: result,
+            message: 'Notifications retrieved successfully',
+            statusCode: 200
+        });
     }
 );
 
@@ -42,7 +47,12 @@ export const markAsRead = asyncHandler(
             throw ApiError.notFound('Notification not found');
         }
 
-        ApiResponse.success('Notification marked as read', { notification }).send(res);
+        return responseService.response({
+            res,
+            data: { notification },
+            message: 'Notification marked as read',
+            statusCode: 200
+        });
     }
 );
 
@@ -54,7 +64,13 @@ export const markAsRead = asyncHandler(
 export const markAllAsRead = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
         await NotificationService.markAllAsRead(req.user._id.toString());
-        ApiResponse.success('All notifications marked as read', null).send(res);
+
+        return responseService.response({
+            res,
+            data: null,
+            message: 'All notifications marked as read',
+            statusCode: 200
+        });
     }
 );
 
@@ -74,6 +90,11 @@ export const deleteNotification = asyncHandler(
             throw ApiError.notFound('Notification not found');
         }
 
-        ApiResponse.success('Notification deleted successfully', null).send(res);
+        return responseService.response({
+            res,
+            data: null,
+            message: 'Notification deleted successfully',
+            statusCode: 200
+        });
     }
 );

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import ResourceRequest from '../model/request';
 import Approval from '../model/approval';
 import { ApiError } from '../utils/ApiError';
-import { ApiResponse } from '../utils/ApiResponse';
+import { responseService } from '../utils/ResponseService';
 import { asyncHandler } from '../utils/asyncHandler';
 import { RequestStatus } from '../types/request.interface';
 import { ApprovalDecision } from '../types/approval.interface';
@@ -47,10 +47,15 @@ export const approveRequest = asyncHandler(
 
         await approval.populate('approverId', 'name email role');
 
-        ApiResponse.success('Request approved successfully', {
-            request,
-            approval
-        }).send(res);
+        return responseService.response({
+            res,
+            data: {
+                request,
+                approval
+            },
+            message: 'Request approved successfully',
+            statusCode: 200
+        });
     }
 );
 
@@ -94,10 +99,15 @@ export const rejectRequest = asyncHandler(
 
         await approval.populate('approverId', 'name email role');
 
-        ApiResponse.success('Request rejected successfully', {
-            request,
-            approval
-        }).send(res);
+        return responseService.response({
+            res,
+            data: {
+                request,
+                approval
+            },
+            message: 'Request rejected successfully',
+            statusCode: 200
+        });
     }
 );
 
@@ -121,9 +131,14 @@ export const getApprovalHistory = asyncHandler(
             .populate('approverId', 'name email role')
             .sort({ decisionDate: -1 });
 
-        ApiResponse.success('Approval history retrieved successfully', {
-            count: approvals.length,
-            approvals
-        }).send(res);
+        return responseService.response({
+            res,
+            data: {
+                count: approvals.length,
+                approvals
+            },
+            message: 'Approval history retrieved successfully',
+            statusCode: 200
+        });
     }
 );

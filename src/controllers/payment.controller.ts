@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import ResourceRequest from '../model/request';
 import Payment from '../model/payment';
 import { ApiError } from '../utils/ApiError';
-import { ApiResponse } from '../utils/ApiResponse';
+import { responseService } from '../utils/ResponseService';
 import { asyncHandler } from '../utils/asyncHandler';
 import { RequestStatus } from '../types/request.interface';
 
@@ -59,10 +59,15 @@ export const processPayment = asyncHandler(
 
         await payment.populate('financeOfficerId', 'name email role');
 
-        ApiResponse.created('Payment processed successfully', {
-            payment,
-            request
-        }).send(res);
+        return responseService.response({
+            res,
+            data: {
+                payment,
+                request
+            },
+            message: 'Payment processed successfully',
+            statusCode: 201
+        });
     }
 );
 
@@ -99,11 +104,16 @@ export const getPaymentHistory = asyncHandler(
         // Calculate total amount paid
         const totalAmount = payments.reduce((sum, payment) => sum + payment.amountPaid, 0);
 
-        ApiResponse.success('Payment history retrieved successfully', {
-            count: payments.length,
-            totalAmount,
-            payments
-        }).send(res);
+        return responseService.response({
+            res,
+            data: {
+                count: payments.length,
+                totalAmount,
+                payments
+            },
+            message: 'Payment history retrieved successfully',
+            statusCode: 200
+        });
     }
 );
 
@@ -128,6 +138,11 @@ export const getPayment = asyncHandler(
             throw ApiError.notFound('Payment not found');
         }
 
-        ApiResponse.success('Payment retrieved successfully', { payment }).send(res);
+        return responseService.response({
+            res,
+            data: { payment },
+            message: 'Payment retrieved successfully',
+            statusCode: 200
+        });
     }
 );
