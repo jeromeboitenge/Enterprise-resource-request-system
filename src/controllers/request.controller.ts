@@ -146,31 +146,31 @@ export const updateRequest = asyncHandler(
         const request = await ResourceRequest.findById(req.params.id);
         validateResourceExists(request, 'Request', req.params.id);
 
-        // Validate ownership
+        // Validate ownership (non-null assertion safe after validation)
         validateOwnership(
-            request.userId.toString(),
+            request!.userId.toString(),
             req.user._id.toString(),
             'request'
         );
 
         // Validate request status
         validateRequestStatus(
-            request.status,
+            request!.status,
             [RequestStatus.Draft, RequestStatus.Submitted],
             'update'
         );
 
-        // Update fields
-        if (title) request.title = title;
-        if (resourceName) request.resourceName = resourceName;
-        if (resourceType) request.resourceType = resourceType;
-        if (description !== undefined) request.description = description;
-        if (quantity) request.quantity = quantity;
-        if (estimatedCost) request.estimatedCost = estimatedCost;
-        if (priority) request.priority = priority;
+        // Update fields (non-null assertion safe after validation)
+        if (title) request!.title = title;
+        if (resourceName) request!.resourceName = resourceName;
+        if (resourceType) request!.resourceType = resourceType;
+        if (description !== undefined) request!.description = description;
+        if (quantity) request!.quantity = quantity;
+        if (estimatedCost) request!.estimatedCost = estimatedCost;
+        if (priority) request!.priority = priority;
 
-        await request.save();
-        await populateRequest(request);
+        await request!.save();
+        await populateRequest(request!);
 
         return responseService.response({
             res,
@@ -191,21 +191,21 @@ export const deleteRequest = asyncHandler(
         const request = await ResourceRequest.findById(req.params.id);
         validateResourceExists(request, 'Request', req.params.id);
 
-        // Validate ownership
+        // Validate ownership (non-null assertion safe after validation)
         validateOwnership(
-            request.userId.toString(),
+            request!.userId.toString(),
             req.user._id.toString(),
             'request'
         );
 
         // Validate request status
         validateRequestStatus(
-            request.status,
+            request!.status,
             [RequestStatus.Draft, RequestStatus.Submitted],
             'delete'
         );
 
-        await request.deleteOne();
+        await request!.deleteOne();
 
         return responseService.response({
             res,

@@ -152,6 +152,8 @@ export const validateAmount = (
  * ```typescript
  * const request = await ResourceRequest.findById(id);
  * validateResourceExists(request, 'Request', id);
+ * // Use non-null assertion after validation
+ * request!.userId
  * ```
  */
 export const validateResourceExists = (
