@@ -217,19 +217,11 @@ export const login = asyncHandler(
         // Update last login timestamp
         await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
 
-        // Generate JWT token
-        const token = jwt.sign(
-            { userId: user._id, role: user.role },
-            config.jwtSecret,
-            { expiresIn: JWT_CONFIG.DEFAULT_EXPIRES_IN }
-        );
+        // Generate JWT token using helper
+        const token = generateAuthToken(user._id.toString(), user.role);
 
-        // Remove sensitive fields from response
-        const userResponse: any = user.toObject();
-        delete userResponse.password;
-        delete userResponse.loginAttempts;
-        delete userResponse.lockUntil;
-        delete userResponse.refreshToken;
+        // Format user data for response (removes sensitive fields)
+        const userResponse = formatUserForAuth(user);
 
         // Log successful login
         logSecurityEvent('login_successful', req, {
