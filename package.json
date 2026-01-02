@@ -9,7 +9,8 @@
     "build": "tsc",
     "render-build": "npm install && npm run build",
     "lint": "eslint . --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "seed": "ts-node src/scripts/seedUsers.ts"
   },
   "author": "Jerome Boitenge",
   "license": "MIT",
