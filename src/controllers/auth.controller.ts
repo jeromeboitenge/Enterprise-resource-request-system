@@ -274,10 +274,7 @@ export const login = asyncHandler(
 export const getProfile = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
         const user = await User.findById(req.user._id).select('-password');
-
-        if (!user) {
-            throw ApiError.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
-        }
+        validateResourceExists(user, 'User');
 
         return responseService.response({
             res,
