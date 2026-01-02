@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import User from '../model/user';
 import { config } from '../config';
 import { ApiError } from '../utils/ApiError';
-import { ApiResponse } from '../utils/ApiResponse';
+import { responseService } from '../utils/ResponseService';
 import { asyncHandler } from '../utils/asyncHandler';
 import { logSecurityEvent } from '../utils/logger';
 import {
@@ -100,10 +100,15 @@ export const register = asyncHandler(
             role: user.role,
         });
 
-        ApiResponse.created(AUTH_MESSAGES.REGISTER_SUCCESS, {
-            user: userResponse,
-            token
-        }).send(res);
+        return responseService.response({
+            res,
+            data: {
+                user: userResponse,
+                token
+            },
+            message: AUTH_MESSAGES.REGISTER_SUCCESS,
+            statusCode: 201
+        });
     }
 );
 
@@ -240,10 +245,15 @@ export const login = asyncHandler(
             role: user.role,
         });
 
-        ApiResponse.success(AUTH_MESSAGES.LOGIN_SUCCESS, {
-            user: userResponse,
-            token
-        }).send(res);
+        return responseService.response({
+            res,
+            data: {
+                user: userResponse,
+                token
+            },
+            message: AUTH_MESSAGES.LOGIN_SUCCESS,
+            statusCode: 200
+        });
     }
 );
 
@@ -276,7 +286,12 @@ export const getProfile = asyncHandler(
             throw ApiError.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
         }
 
-        ApiResponse.success(AUTH_MESSAGES.PROFILE_RETRIEVED, { user }).send(res);
+        return responseService.response({
+            res,
+            data: { user },
+            message: AUTH_MESSAGES.PROFILE_RETRIEVED,
+            statusCode: 200
+        });
     }
 );
 
@@ -335,7 +350,12 @@ export const updateProfile = asyncHandler(
             changes: { name, email },
         });
 
-        ApiResponse.success(AUTH_MESSAGES.PROFILE_UPDATED, { user }).send(res);
+        return responseService.response({
+            res,
+            data: { user },
+            message: AUTH_MESSAGES.PROFILE_UPDATED,
+            statusCode: 200
+        });
     }
 );
 
@@ -422,7 +442,12 @@ export const changePassword = asyncHandler(
             email: user.email,
         });
 
-        ApiResponse.success(AUTH_MESSAGES.PASSWORD_CHANGED, {}).send(res);
+        return responseService.response({
+            res,
+            data: {},
+            message: AUTH_MESSAGES.PASSWORD_CHANGED,
+            statusCode: 200
+        });
     }
 );
 
