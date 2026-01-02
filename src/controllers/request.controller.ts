@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import ResourceRequest from '../model/request';
 import { ApiError } from '../utils/ApiError';
-import { ApiResponse } from '../utils/ApiResponse';
+import { responseService } from '../utils/ResponseService';
 import { asyncHandler } from '../utils/asyncHandler';
 import { RequestStatus } from '../types/request.interface';
 
@@ -32,7 +32,12 @@ export const createRequest = asyncHandler(
             { path: 'departmentId', select: 'name' }
         ]);
 
-        ApiResponse.created('Request created successfully', { request }).send(res);
+        return responseService.response({
+            res,
+            data: { request },
+            message: 'Request created successfully',
+            statusCode: 201
+        });
     }
 );
 
@@ -55,10 +60,15 @@ export const getMyRequests = asyncHandler(
             .populate('departmentId', 'name')
             .sort({ createdAt: -1 });
 
-        ApiResponse.success('Requests retrieved successfully', {
-            count: requests.length,
-            requests
-        }).send(res);
+        return responseService.response({
+            res,
+            data: {
+                count: requests.length,
+                requests
+            },
+            message: 'Requests retrieved successfully',
+            statusCode: 200
+        });
     }
 );
 
@@ -84,10 +94,15 @@ export const getAllRequests = asyncHandler(
             .populate('departmentId', 'name')
             .sort({ createdAt: -1 });
 
-        ApiResponse.success('Requests retrieved successfully', {
-            count: requests.length,
-            requests
-        }).send(res);
+        return responseService.response({
+            res,
+            data: {
+                count: requests.length,
+                requests
+            },
+            message: 'Requests retrieved successfully',
+            statusCode: 200
+        });
     }
 );
 
@@ -115,7 +130,12 @@ export const getRequest = asyncHandler(
             throw ApiError.forbidden('You do not have permission to view this request');
         }
 
-        ApiResponse.success('Request retrieved successfully', { request }).send(res);
+        return responseService.response({
+            res,
+            data: { request },
+            message: 'Request retrieved successfully',
+            statusCode: 200
+        });
     }
 );
 
@@ -159,7 +179,12 @@ export const updateRequest = asyncHandler(
             { path: 'departmentId', select: 'name' }
         ]);
 
-        ApiResponse.success('Request updated successfully', { request }).send(res);
+        return responseService.response({
+            res,
+            data: { request },
+            message: 'Request updated successfully',
+            statusCode: 200
+        });
     }
 );
 
@@ -188,6 +213,12 @@ export const deleteRequest = asyncHandler(
 
         await request.deleteOne();
 
-        ApiResponse.success('Request deleted successfully', { request }).send(res);
+        return responseService.response({
+            res,
+            data: { request },
+            message: 'Request deleted successfully',
+            statusCode: 200
+        });
     }
 );
+
