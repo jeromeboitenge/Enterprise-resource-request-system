@@ -1,9 +1,5 @@
 import Joi from 'joi';
 
-/**
- * Custom password validation
- * Requires: min 8 chars, uppercase, lowercase, number, special character
- */
 const passwordSchema = Joi.string()
     .min(8)
     .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
@@ -14,11 +10,9 @@ const passwordSchema = Joi.string()
         'any.required': 'Password is required'
     });
 
-/**
- * Email validation with common patterns
- */
+
 const emailSchema = Joi.string()
-    .email({ tlds: { allow: false } }) // Allow all TLDs
+    .email()
     .lowercase()
     .required()
     .messages({
