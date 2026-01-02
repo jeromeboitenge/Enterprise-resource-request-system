@@ -16,14 +16,14 @@ export const ACCOUNT_LOCKOUT = {
      * Maximum number of failed login attempts before account is locked
      * @default 5
      */
-    MAX_LOGIN_ATTEMPTS: 5,
+    MAX_LOGIN_ATTEMPTS: 10,
 
     /**
      * Duration of account lockout in milliseconds (15 minutes)
      * After this period, the account will automatically unlock
-     * @default 900000 (15 minutes)
+     * @default 100000 (15 minutes)
      */
-    LOCK_DURATION_MS: 15 * 60 * 1000,
+    LOCK_DURATION_MS: 1 * 60 * 1000,
 
     /**
      * Duration of account lockout in minutes (for display purposes)
