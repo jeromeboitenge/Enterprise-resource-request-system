@@ -4,6 +4,9 @@ import { ApiError } from '../utils/ApiError';
 import { responseService } from '../utils/ResponseService';
 import { asyncHandler } from '../utils/asyncHandler';
 import { RequestStatus } from '../types/request.interface';
+import { populateRequest } from '../utils/populateHelpers';
+import { validateOwnership, validateRequestStatus, validateResourceExists } from '../utils/validationHelpers';
+import { buildFilter } from '../utils/queryHelpers';
 
 /**
  * Create a new resource request
@@ -27,10 +30,7 @@ export const createRequest = asyncHandler(
             status: RequestStatus.Draft
         });
 
-        await request.populate([
-            { path: 'userId', select: 'name email role' },
-            { path: 'departmentId', select: 'name' }
-        ]);
+        await populateRequest(request);
 
         return responseService.response({
             res,
@@ -50,15 +50,14 @@ export const getMyRequests = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
         const { status } = req.query;
 
-        const filter: any = { userId: req.user._id };
-        if (status) {
-            filter.status = status;
-        }
+        const filter = buildFilter({
+            userId: req.user._id,
+            status: req.query.status
+        });
 
-        const requests = await ResourceRequest.find(filter)
-            .populate('userId', 'name email role')
-            .populate('departmentId', 'name')
-            .sort({ createdAt: -1 });
+        const requests = await populateRequest(
+            ResourceRequest.find(filter).sort({ createdAt: -1 })
+        );
 
         return responseService.response({
             res,
@@ -81,18 +80,15 @@ export const getAllRequests = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
         const { status, departmentId } = req.query;
 
-        const filter: any = {};
-        if (status) {
-            filter.status = status;
-        }
-        if (departmentId) {
-            filter.departmentId = departmentId;
-        }
+        const filter = buildFilter({
+            status: req.query.status,
+            departmentId: req.query.departmentId
+        });
 
-        const requests = await ResourceRequest.find(filter)
-            .populate('userId', 'name email role department')
-            .populate('departmentId', 'name')
-            .sort({ createdAt: -1 });
+        const requests = await populateRequest(
+            ResourceRequest.find(filter).sort({ createdAt: -1 }),
+            true // include user department
+        );
 
         return responseService.response({
             res,
@@ -113,13 +109,12 @@ export const getAllRequests = asyncHandler(
  */
 export const getRequest = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-        const request = await ResourceRequest.findById(req.params.id)
-            .populate('userId', 'name email role department')
-            .populate('departmentId', 'name');
+        const request = await populateRequest(
+            ResourceRequest.findById(req.params.id),
+            true
+        );
 
-        if (!request) {
-            throw ApiError.notFound('Request not found');
-        }
+        validateResourceExists(request, 'Request', req.params.id);
 
         // Check if user has permission to view this request
         const requestUserId = typeof request.userId === 'object' ? (request.userId as any)._id : request.userId;
@@ -149,20 +144,21 @@ export const updateRequest = asyncHandler(
         const { title, resourceName, resourceType, description, quantity, estimatedCost, priority } = req.body;
 
         const request = await ResourceRequest.findById(req.params.id);
+        validateResourceExists(request, 'Request', req.params.id);
 
-        if (!request) {
-            throw ApiError.notFound('Request not found');
-        }
+        // Validate ownership
+        validateOwnership(
+            request.userId.toString(),
+            req.user._id.toString(),
+            'request'
+        );
 
-        // Check if user is the owner
-        if (request.userId.toString() !== req.user._id.toString()) {
-            throw ApiError.forbidden('You can only update your own requests');
-        }
-
-        // Check if request is still in draft or submitted
-        if (![RequestStatus.Draft, RequestStatus.Submitted].includes(request.status)) {
-            throw ApiError.badRequest('Cannot update request that has been processed');
-        }
+        // Validate request status
+        validateRequestStatus(
+            request.status,
+            [RequestStatus.Draft, RequestStatus.Submitted],
+            'update'
+        );
 
         // Update fields
         if (title) request.title = title;
@@ -174,10 +170,7 @@ export const updateRequest = asyncHandler(
         if (priority) request.priority = priority;
 
         await request.save();
-        await request.populate([
-            { path: 'userId', select: 'name email role' },
-            { path: 'departmentId', select: 'name' }
-        ]);
+        await populateRequest(request);
 
         return responseService.response({
             res,
@@ -196,20 +189,21 @@ export const updateRequest = asyncHandler(
 export const deleteRequest = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
         const request = await ResourceRequest.findById(req.params.id);
+        validateResourceExists(request, 'Request', req.params.id);
 
-        if (!request) {
-            throw ApiError.notFound('Request not found');
-        }
+        // Validate ownership
+        validateOwnership(
+            request.userId.toString(),
+            req.user._id.toString(),
+            'request'
+        );
 
-        // Check if user is the owner
-        if (request.userId.toString() !== req.user._id.toString()) {
-            throw ApiError.forbidden('You can only delete your own requests');
-        }
-
-        // Check if request is still in draft or submitted
-        if (![RequestStatus.Draft, RequestStatus.Submitted].includes(request.status)) {
-            throw ApiError.badRequest('Cannot delete request that has been processed');
-        }
+        // Validate request status
+        validateRequestStatus(
+            request.status,
+            [RequestStatus.Draft, RequestStatus.Submitted],
+            'delete'
+        );
 
         await request.deleteOne();
 
