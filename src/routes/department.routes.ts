@@ -14,14 +14,8 @@ import { Roles } from '../types/user.interface';
 
 const router = Router();
 
-// All routes require authentication
 router.use(authenticate);
 
-/**
- * @route   POST /api/v1/departments
- * @desc    Create a new department
- * @access  Private (Admin only)
- */
 router.post(
     '/',
     authorize(Roles.Admin),
@@ -29,25 +23,10 @@ router.post(
     createDepartment
 );
 
-/**
- * @route   GET /api/v1/departments
- * @desc    Get all departments
- * @access  Private
- */
 router.get('/', getAllDepartments);
 
-/**
- * @route   GET /api/v1/departments/:id
- * @desc    Get single department
- * @access  Private
- */
 router.get('/:id', getDepartment);
 
-/**
- * @route   PUT /api/v1/departments/:id
- * @desc    Update department
- * @access  Private (Admin only)
- */
 router.put(
     '/:id',
     authorize(Roles.Admin),
@@ -55,11 +34,6 @@ router.put(
     updateDepartment
 );
 
-/**
- * @route   DELETE /api/v1/departments/:id
- * @desc    Delete department
- * @access  Private (Admin only)
- */
 router.delete('/:id', authorize(Roles.Admin), deleteDepartment);
 
 export default router;

@@ -1,10 +1,6 @@
 import mongoSanitize from 'express-mongo-sanitize';
 import { Request, Response, NextFunction } from 'express';
 
-/**
- * Sanitize middleware to prevent NoSQL injection attacks
- * Removes any keys that start with '$' or contain '.'
- */
 export const sanitizeInput = mongoSanitize({
     replaceWith: '_', // Replace prohibited characters with underscore
     onSanitize: ({ req, key }) => {
@@ -12,22 +8,17 @@ export const sanitizeInput = mongoSanitize({
     }
 });
 
-/**
- * Additional custom sanitization for specific attack patterns
- */
 export const customSanitize = (req: Request, res: Response, next: NextFunction) => {
-    // Sanitize common XSS patterns in strings
+
     const sanitizeString = (str: string): string => {
         if (typeof str !== 'string') return str;
 
-        // Remove script tags and event handlers
         return str
             .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
             .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
             .trim();
     };
 
-    // Recursively sanitize object
     const sanitizeObject = (obj: any): any => {
         if (obj === null || obj === undefined) return obj;
 
@@ -52,7 +43,6 @@ export const customSanitize = (req: Request, res: Response, next: NextFunction) 
         return obj;
     };
 
-    // Sanitize request body, query, and params
     if (req.body) {
         req.body = sanitizeObject(req.body);
     }

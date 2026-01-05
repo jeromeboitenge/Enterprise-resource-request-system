@@ -3,9 +3,7 @@ import { AuditAction } from '../types/auditLog.interface';
 import logger from '../utils/logger';
 
 export class AuditService {
-    /**
-     * Create an audit log entry
-     */
+
     static async log(data: {
         userId: string;
         userRole: string;
@@ -21,14 +19,11 @@ export class AuditService {
                 timestamp: new Date()
             });
         } catch (error) {
-            // Log error but don't throw - audit logging should not break the main flow
+
             logger.error('Audit logging failed:', error);
         }
     }
 
-    /**
-     * Get audit logs with filters
-     */
     static async getLogs(filters: {
         userId?: string;
         action?: AuditAction;

@@ -19,7 +19,6 @@ const AuditLogSchema: Schema = new Schema(
     }
 );
 
-// Make the entire document immutable after creation
 AuditLogSchema.pre('save', function (next) {
     if (!this.isNew) {
         throw new Error('Audit logs cannot be modified');

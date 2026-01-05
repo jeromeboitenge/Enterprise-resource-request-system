@@ -12,14 +12,8 @@ import { Roles } from '../types/user.interface';
 
 const router = Router();
 
-// All routes require authentication
 router.use(authenticate);
 
-/**
- * @route   POST /api/v1/approvals/:requestId/approve
- * @desc    Approve a request
- * @access  Private (Manager only)
- */
 router.post(
     '/:requestId/approve',
     authorize(Roles.Manager, Roles.Admin),
@@ -27,11 +21,6 @@ router.post(
     approveRequest
 );
 
-/**
- * @route   POST /api/v1/approvals/:requestId/reject
- * @desc    Reject a request
- * @access  Private (Manager only)
- */
 router.post(
     '/:requestId/reject',
     authorize(Roles.Manager, Roles.Admin),
@@ -39,11 +28,6 @@ router.post(
     rejectRequest
 );
 
-/**
- * @route   GET /api/v1/approvals/:requestId
- * @desc    Get approval history for a request
- * @access  Private
- */
 router.get('/:requestId', getApprovalHistory);
 
 export default router;

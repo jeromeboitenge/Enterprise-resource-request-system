@@ -6,7 +6,7 @@ import 'dotenv/config';
 
 async function seedDatabase() {
     try {
-        // Connect to database
+
         let dbUrl = process.env.DB_URL as string;
         const dbUsername = process.env.DB_USERNAME as string;
         const dbPassword = process.env.DB_PASSWORD as string;
@@ -18,12 +18,10 @@ async function seedDatabase() {
         await mongoose.connect(dbUrl);
         console.log('✅ Connected to MongoDB');
 
-        // Clear existing data
         await User.deleteMany({});
         await Department.deleteMany({});
         console.log('✅ Cleared existing data');
 
-        // Create departments
         const departments = await Department.create([
             { name: 'IT', code: 'IT', description: 'Information Technology' },
             { name: 'HR', code: 'HR', description: 'Human Resources' },
@@ -32,10 +30,8 @@ async function seedDatabase() {
         ]);
         console.log('✅ Created departments');
 
-        // Hash password
         const hashedPassword = await bcrypt.hash('SecureP@ss123', 12);
 
-        // Create users
         const users = await User.create([
             {
                 name: 'Admin User',

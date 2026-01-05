@@ -1,9 +1,5 @@
 import rateLimit from 'express-rate-limit';
 
-/**
- * Rate limiter for authentication endpoints
- * Stricter limits to prevent brute force attacks
- */
 export const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5, // Limit each IP to 5 requests per windowMs
@@ -18,10 +14,6 @@ export const authLimiter = rateLimit({
     skipFailedRequests: false // Count failed requests
 });
 
-/**
- * Rate limiter for general API endpoints
- * More lenient limits for normal operations
- */
 export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // Limit each IP to 100 requests per windowMs
@@ -36,10 +28,6 @@ export const apiLimiter = rateLimit({
     skipFailedRequests: false
 });
 
-/**
- * Strict rate limiter for sensitive operations
- * Used for password resets, account changes, etc.
- */
 export const strictLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
     max: 3, // Limit each IP to 3 requests per hour

@@ -5,6 +5,7 @@ import requestRoutes from "./request.routes";
 import approvalRoutes from "./approval.routes";
 import paymentRoutes from "./payment.routes";
 import notificationRoutes from "./notification.routes";
+import userRoutes from "./user.routes";
 
 const routes: Router[] = [
     authRoutes,
@@ -16,14 +17,12 @@ const routes: Router[] = [
 
 const mainRouter = express.Router();
 
-// Mount auth routes
 mainRouter.use('/auth', authRoutes)
-
-// Mount other routes
 mainRouter.use('/departments', departmentRoutes)
 mainRouter.use('/requests', requestRoutes);
 mainRouter.use('/approvals', approvalRoutes);
 mainRouter.use('/payments', paymentRoutes);
 mainRouter.use('/notifications', notificationRoutes);
+mainRouter.use('/users', userRoutes);
 
 export { mainRouter };

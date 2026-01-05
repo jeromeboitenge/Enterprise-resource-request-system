@@ -10,7 +10,6 @@ const passwordSchema = Joi.string()
         'any.required': 'Password is required'
     });
 
-
 const emailSchema = Joi.string()
     .email()
     .lowercase()
@@ -52,6 +51,9 @@ export const loginSchema = Joi.object({
 export const updateUserSchema = Joi.object({
     name: Joi.string().min(3).max(100).trim().optional(),
     email: emailSchema.optional(),
+    role: Joi.string()
+        .valid('employee', 'manager', 'departmenthead', 'finance', 'admin')
+        .optional(),
     department: Joi.string().trim().optional(),
     isActive: Joi.boolean().optional()
 });
@@ -70,3 +72,13 @@ export const changePasswordSchema = Joi.object({
         })
 });
 
+export const resetPasswordSchema = Joi.object({
+    newPassword: passwordSchema,
+    confirmPassword: Joi.string()
+        .valid(Joi.ref('newPassword'))
+        .required()
+        .messages({
+            'any.only': 'Passwords do not match',
+            'any.required': 'Password confirmation is required'
+        })
+});

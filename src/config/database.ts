@@ -15,7 +15,6 @@ export const databaseConnection = async (): Promise<void> => {
             .replace("<db_username>", dbUsername)
             .replace("<db_password>", dbPassword);
 
-        // Disable mongoose buffering (BEST PRACTICE)
         mongoose.set("bufferCommands", false);
 
         await mongoose.connect(dbUrl);

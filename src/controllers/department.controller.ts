@@ -70,7 +70,6 @@ export const updateDepartment = async (req: Request, res: Response, next: NextFu
         if (name) {
             const existingDepartment = await Department.findOne({ name });
 
-
             if (existingDepartment) {
                 const isSameDepartment = existingDepartment._id.toString() === req.params.id;
 
@@ -82,7 +81,6 @@ export const updateDepartment = async (req: Request, res: Response, next: NextFu
                 }
             }
         }
-
 
         const department = await Department.findByIdAndUpdate(
             req.params.id,

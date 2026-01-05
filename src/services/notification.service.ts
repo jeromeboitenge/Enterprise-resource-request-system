@@ -5,9 +5,7 @@ import { Roles } from '../types/user.interface';
 import logger from '../utils/logger';
 
 export class NotificationService {
-    /**
-     * Create a notification
-     */
+
     static async create(data: {
         userId: string;
         type: NotificationType;
@@ -23,9 +21,6 @@ export class NotificationService {
         }
     }
 
-    /**
-     * Create notifications for multiple users
-     */
     static async createBulk(userIds: string[], data: {
         type: NotificationType;
         title: string;
@@ -45,9 +40,6 @@ export class NotificationService {
         }
     }
 
-    /**
-     * Notify users by role
-     */
     static async notifyByRole(roles: Roles[], data: {
         type: NotificationType;
         title: string;
@@ -59,9 +51,6 @@ export class NotificationService {
         return await this.createBulk(userIds, data);
     }
 
-    /**
-     * Get user notifications
-     */
     static async getUserNotifications(userId: string, options: {
         isRead?: boolean;
         page?: number;
@@ -96,9 +85,6 @@ export class NotificationService {
         };
     }
 
-    /**
-     * Mark notification as read
-     */
     static async markAsRead(notificationId: string, userId: string) {
         return await Notification.findOneAndUpdate(
             { _id: notificationId, userId },
@@ -107,9 +93,6 @@ export class NotificationService {
         );
     }
 
-    /**
-     * Mark all notifications as read
-     */
     static async markAllAsRead(userId: string) {
         return await Notification.updateMany(
             { userId, isRead: false },
@@ -117,9 +100,6 @@ export class NotificationService {
         );
     }
 
-    /**
-     * Delete notification
-     */
     static async delete(notificationId: string, userId: string) {
         return await Notification.findOneAndDelete({ _id: notificationId, userId });
     }
