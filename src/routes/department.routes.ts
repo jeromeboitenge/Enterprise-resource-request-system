@@ -9,7 +9,7 @@ import {
 import { authenticate } from '../middleware/auth.middleware';
 import { authorize } from '../middleware/authorize.middleware';
 import { validate } from '../middleware/validate';
-import { createDepartmentSchema } from '../schema/department.validation';
+import { createDepartmentSchema, updateDepartmentSchema } from '../schema/department.validation';
 import { Roles } from '../types/user.interface';
 
 const router = Router();
@@ -30,7 +30,7 @@ router.get('/:id', getDepartment);
 router.put(
     '/:id',
     authorize(Roles.Admin),
-    validate(createDepartmentSchema),
+    validate(updateDepartmentSchema),
     updateDepartment
 );
 

@@ -99,9 +99,13 @@ export const updateDepartment = async (req: Request, res: Response, next: NextFu
             });
         }
 
+        const updateData: any = {};
+        if (name) updateData.name = name;
+        if (description) updateData.description = description;
+
         const department = await prisma.department.update({
             where: { id: req.params.id },
-            data: { name, description }
+            data: updateData
         });
 
         res.status(200).json({
