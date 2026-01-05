@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import {
-    register,
     login,
+    verifyLogin,
+    forgotPassword,
+    verifyResetOtp,
+    resetPassword,
     getProfile,
     updateProfile,
     changePassword
@@ -135,6 +138,110 @@ router.post('/register', authLimiter, validate(createUserSchema), register);
  *               $ref: '#/components/schemas/Error'
  */
 router.post('/login', authLimiter, validate(loginSchema), login);
+
+/**
+ * @swagger
+ * /auth/verify-login:
+ *   post:
+ *     summary: Verify login OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *             properties:
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login verified, returns token
+ */
+router.post('/verify-login', authLimiter, verifyLogin);
+
+/**
+ * @swagger
+ * /auth/forgot-password:
+ *   post:
+ *     summary: Request password reset OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OTP sent if email exists
+ */
+router.post('/forgot-password', authLimiter, forgotPassword);
+
+/**
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     summary: Reset password using OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ */
+router.post('/reset-password', authLimiter, resetPassword);
+
+/**
+ * @swagger
+ * /auth/verify-reset-otp:
+ *   post:
+ *     summary: Verify OTP for password reset (Step 2)
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *             properties:
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OTP verified successfully
+ */
+router.post('/verify-reset-otp', authLimiter, verifyResetOtp);
 
 /**
  * @swagger
