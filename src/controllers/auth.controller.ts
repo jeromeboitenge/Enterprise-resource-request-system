@@ -1,215 +1,159 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import User from '../model/user';
-import { ApiError } from '../utils/ApiError';
-import { responseService } from '../utils/ResponseService';
-import { asyncHandler } from '../utils/asyncHandler';
-import { logSecurityEvent } from '../utils/logger';
-import { generateAuthToken } from '../utils/tokenHelpers';
-import { formatUserForAuth } from '../utils/userHelpers';
-import { validateNoDuplicate, validateResourceExists } from '../utils/validationHelpers';
-import {
-    ACCOUNT_LOCKOUT,
-    HASHING,
-    AUTH_MESSAGES,
-    formatMessage,
-} from '../constants';
 
 /**
- * Register a New User
+ * ============================================
+ * REGISTER NEW USER
+ * ============================================
  * 
- * Creates a new user account with hashed password and generates a JWT token.
+ * This function creates a new user account.
  * 
- * **Security Features**:
- * - Password is hashed using bcrypt with 12 salt rounds
- * - Email uniqueness is enforced at database level
- * - Password must meet complexity requirements (validated by Joi schema)
- * 
- * **Process**:
- * 1. Check if user with email already exists
- * 2. Hash the password using bcrypt
- * 3. Create user in database
- * 4. Generate JWT token
- * 5. Return user data (without password) and token
- * 
- * @route POST /api/v1/auth/register
- * @access Public
- * 
- * @param {string} req.body.name - User's full name (min 3 chars)
- * @param {string} req.body.email - User's email address (must be unique)
- * @param {string} req.body.password - User's password (min 8 chars, must include uppercase, lowercase, number, special char)
- * @param {string} req.body.confirmPassword - Password confirmation (must match password)
- * @param {string} [req.body.role='employee'] - User's role (employee, manager, departmenthead, finance, admin)
- * @param {string} [req.body.department] - User's department
- * 
- * @returns {Object} Response with user data and JWT token
- * @returns {Object} response.data.user - User object (without password)
- * @returns {string} response.data.token - JWT authentication token
- * 
- * @throws {ApiError} 409 - User with email already exists
- * @throws {ApiError} 400 - Validation error (handled by validate middleware)
- * 
- * @example
- * POST /api/v1/auth/register
- * {
- *   "name": "John Doe",
- *   "email": "john@example.com",
- *   "password": "SecurePass123!",
- *   "confirmPassword": "SecurePass123!",
- *   "role": "employee",
- *   "department": "IT"
- * }
+ * Steps:
+ * 1. Get user data from request body
+ * 2. Check if user already exists
+ * 3. Hash the password for security
+ * 4. Save user to database
+ * 5. Create a JWT token for authentication
+ * 6. Send response with user data and token
  */
-export const register = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+export const register = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Step 1: Get data from request body
         const { name, email, password, role, department } = req.body;
 
-        // Check if user already exists
+        // Step 2: Check if user with this email already exists
         const existingUser = await User.findOne({ email });
-        validateNoDuplicate(existingUser, 'User', 'email');
+        if (existingUser) {
+            return res.status(409).json({
+                success: false,
+                message: 'User with this email already exists'
+            });
+        }
 
-        // Hash password using bcrypt with configured salt rounds
-        const hashedPassword = await bcrypt.hash(password, HASHING.SALT_ROUNDS);
+        // Step 3: Hash the password (12 rounds makes it very secure)
+        const hashedPassword = await bcrypt.hash(password, 12);
 
-        // Create user
+        // Step 4: Create new user in database
         const user = await User.create({
             name,
             email,
             password: hashedPassword,
-            role,
+            role: role || 'employee', // Default to employee if no role provided
             department
         });
 
-        // Generate JWT token using helper
-        const token = generateAuthToken(user._id.toString(), user.role);
+        // Step 5: Create JWT token (expires in 1 day)
+        const token = jwt.sign(
+            { userId: user._id, role: user.role },
+            process.env.JWT_SECRET as string,
+            { expiresIn: '1d' }
+        );
 
-        // Format user data for response (removes sensitive fields)
-        const userResponse = formatUserForAuth(user);
-
-        // Log successful registration
-        logSecurityEvent('user_registered', req, {
-            userId: user._id,
+        // Step 6: Prepare user data for response (remove password)
+        const userResponse = {
+            _id: user._id,
+            name: user.name,
             email: user.email,
             role: user.role,
-        });
+            department: user.department,
+            isActive: user.isActive,
+            createdAt: user.createdAt
+        };
 
-        return responseService.response({
-            res,
+        // Step 7: Send success response
+        res.status(201).json({
+            success: true,
+            message: 'User registered successfully',
             data: {
                 user: userResponse,
                 token
-            },
-            message: AUTH_MESSAGES.REGISTER_SUCCESS,
-            statusCode: 201
+            }
         });
+
+    } catch (error) {
+        // Pass error to error handling middleware
+        next(error);
     }
-);
+};
 
 /**
- * Authenticate User and Generate Token
+ * ============================================
+ * LOGIN USER
+ * ============================================
  * 
- * Authenticates a user with email and password, implementing comprehensive security measures.
+ * This function authenticates a user and provides a token.
  * 
- * **Security Features**:
- * - Account lockout after 5 failed attempts (15-minute duration)
- * - Password comparison using bcrypt
- * - Detailed attempt tracking with remaining attempts feedback
- * - Security event logging for audit trail
- * - Active account verification
- * 
- * **Account Lockout Logic**:
- * - Max attempts: 5 failed login attempts
- * - Lock duration: 15 minutes
- * - Auto-unlock: Account automatically unlocks after lock duration
- * - Attempt reset: Counter resets to 0 after successful login
- * 
- * @route POST /api/v1/auth/login
- * @access Public
- * 
- * @param {string} req.body.email - User's email address
- * @param {string} req.body.password - User's password (plain text)
- * 
- * @returns {Object} Response with user data and JWT token
- * @returns {Object} response.data.user - User object (without sensitive fields)
- * @returns {string} response.data.token - JWT authentication token (valid for 1 day)
- * 
- * @throws {ApiError} 401 - Invalid credentials
- * @throws {ApiError} 401 - Account locked (includes remaining lock time)
- * @throws {ApiError} 403 - Account deactivated
- * 
- * @example
- * POST /api/v1/auth/login
- * {
- *   "email": "john@example.com",
- *   "password": "SecurePass123!"
- * }
+ * Steps:
+ * 1. Get email and password from request
+ * 2. Find user in database
+ * 3. Check if account is locked
+ * 4. Verify password
+ * 5. Check if account is active
+ * 6. Create JWT token
+ * 7. Send response with user data and token
  */
-export const login = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+export const login = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Step 1: Get login credentials from request body
         const { email, password } = req.body;
 
-        // Find user by email (include password and security fields)
+        // Step 2: Find user by email (include password field for verification)
         const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
+
         if (!user) {
-            // Log failed login attempt (user not found)
-            logSecurityEvent('login_failed_user_not_found', req, { email });
-            throw ApiError.unauthorized(AUTH_MESSAGES.INVALID_CREDENTIALS);
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid email or password'
+            });
         }
 
-        // Check if account is locked
+        // Step 3: Check if account is locked due to too many failed attempts
         if (user.isLocked) {
-            // Calculate remaining lock time in minutes
+            // Calculate how many minutes until unlock
             const lockTimeRemaining = user.lockUntil
                 ? Math.ceil((user.lockUntil.getTime() - Date.now()) / 60000)
                 : 0;
 
-            // Log locked account login attempt
-            logSecurityEvent('login_failed_account_locked', req, {
-                email: user.email,
-                userId: user._id,
-                lockTimeRemaining,
+            return res.status(401).json({
+                success: false,
+                message: `Account is locked. Please try again in ${lockTimeRemaining} minutes.`
             });
-
-            throw ApiError.unauthorized(
-                formatMessage(AUTH_MESSAGES.ACCOUNT_LOCKED, { minutes: lockTimeRemaining })
-            );
         }
 
-        // Verify password using bcrypt
+        // Step 4: Verify password using bcrypt
         const isPasswordValid = await bcrypt.compare(password, user.password);
+
         if (!isPasswordValid) {
-            // Increment login attempts
+            // Increment failed login attempts
             await user.incLoginAttempts();
 
-            // Calculate remaining attempts before lockout
-            const remainingAttempts = ACCOUNT_LOCKOUT.MAX_LOGIN_ATTEMPTS - (user.loginAttempts || 0) - 1;
-
-            // Log failed login attempt
-            logSecurityEvent('login_failed_invalid_password', req, {
-                email: user.email,
-                userId: user._id,
-                remainingAttempts,
-            });
+            // Calculate remaining attempts before lockout (max 5 attempts)
+            const remainingAttempts = 5 - (user.loginAttempts || 0) - 1;
 
             if (remainingAttempts > 0) {
-                throw ApiError.unauthorized(
-                    formatMessage(AUTH_MESSAGES.REMAINING_ATTEMPTS, { attempts: remainingAttempts })
-                );
+                return res.status(401).json({
+                    success: false,
+                    message: `Invalid email or password. ${remainingAttempts} attempts remaining.`
+                });
             } else {
-                throw ApiError.unauthorized(AUTH_MESSAGES.ACCOUNT_LOCKED_GENERIC);
+                return res.status(401).json({
+                    success: false,
+                    message: 'Account locked due to too many failed login attempts.'
+                });
             }
         }
 
-        // Check if user account is active
+        // Step 5: Check if user account is active
         if (!user.isActive) {
-            logSecurityEvent('login_failed_account_deactivated', req, {
-                email: user.email,
-                userId: user._id,
+            return res.status(403).json({
+                success: false,
+                message: 'Your account has been deactivated. Please contact administrator.'
             });
-            throw ApiError.forbidden(AUTH_MESSAGES.ACCOUNT_DEACTIVATED);
         }
 
-        // Reset login attempts on successful login
+        // Step 6: Reset login attempts on successful login
         if (user.loginAttempts && user.loginAttempts > 0) {
             await user.resetLoginAttempts();
         }
@@ -217,219 +161,201 @@ export const login = asyncHandler(
         // Update last login timestamp
         await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
 
-        // Generate JWT token using helper
-        const token = generateAuthToken(user._id.toString(), user.role);
+        // Step 7: Create JWT token (expires in 1 day)
+        const token = jwt.sign(
+            { userId: user._id, role: user.role },
+            process.env.JWT_SECRET as string,
+            { expiresIn: '1d' }
+        );
 
-        // Format user data for response (removes sensitive fields)
-        const userResponse = formatUserForAuth(user);
-
-        // Log successful login
-        logSecurityEvent('login_successful', req, {
+        // Prepare user data for response (remove password)
+        const userResponse = {
+            _id: user._id,
+            name: user.name,
             email: user.email,
-            userId: user._id,
             role: user.role,
-        });
+            department: user.department,
+            isActive: user.isActive,
+            lastLogin: user.lastLogin
+        };
 
-        return responseService.response({
-            res,
+        // Step 8: Send success response
+        res.status(200).json({
+            success: true,
+            message: 'Login successful',
             data: {
                 user: userResponse,
                 token
-            },
-            message: AUTH_MESSAGES.LOGIN_SUCCESS,
-            statusCode: 200
+            }
         });
+
+    } catch (error) {
+        // Pass error to error handling middleware
+        next(error);
     }
-);
+};
 
 /**
- * Get Current User Profile
+ * ============================================
+ * GET USER PROFILE
+ * ============================================
  * 
- * Retrieves the authenticated user's profile information.
- * Requires valid JWT token in Authorization header.
+ * This function gets the current logged-in user's profile.
+ * User must be authenticated (have valid token).
  * 
- * @route GET /api/v1/auth/profile
- * @access Private (requires authentication)
- * 
- * @param {Request} req - Express request object (req.user populated by auth middleware)
- * 
- * @returns {Object} Response with user profile data
- * @returns {Object} response.data.user - User object (without password)
- * 
- * @throws {ApiError} 401 - Not authenticated (handled by auth middleware)
- * @throws {ApiError} 404 - User not found
- * 
- * @example
- * GET /api/v1/auth/profile
- * Headers: { Authorization: "Bearer <token>" }
+ * Steps:
+ * 1. Get user ID from req.user (set by auth middleware)
+ * 2. Find user in database
+ * 3. Send user data in response
  */
-export const getProfile = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+export const getProfile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Step 1: Get user from database using ID from auth middleware
         const user = await User.findById(req.user._id).select('-password');
-        validateResourceExists(user, 'User');
 
-        return responseService.response({
-            res,
-            data: { user },
-            message: AUTH_MESSAGES.PROFILE_RETRIEVED,
-            statusCode: 200
+        // Step 2: Check if user exists
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Step 3: Send user data
+        res.status(200).json({
+            success: true,
+            message: 'Profile retrieved successfully',
+            data: { user }
         });
+
+    } catch (error) {
+        // Pass error to error handling middleware
+        next(error);
     }
-);
+};
 
 /**
- * Update User Profile
+ * ============================================
+ * UPDATE USER PROFILE
+ * ============================================
  * 
- * Updates the authenticated user's profile information (name and email).
- * Email uniqueness is enforced - cannot change to an email already in use.
+ * This function updates the current user's profile (name and email).
+ * User must be authenticated.
  * 
- * @route PUT /api/v1/auth/profile
- * @access Private (requires authentication)
- * 
- * @param {string} [req.body.name] - Updated name
- * @param {string} [req.body.email] - Updated email (must be unique)
- * 
- * @returns {Object} Response with updated user data
- * @returns {Object} response.data.user - Updated user object (without password)
- * 
- * @throws {ApiError} 401 - Not authenticated (handled by auth middleware)
- * @throws {ApiError} 404 - User not found
- * @throws {ApiError} 409 - Email already in use
- * 
- * @example
- * PUT /api/v1/auth/profile
- * Headers: { Authorization: "Bearer <token>" }
- * {
- *   "name": "John Updated",
- *   "email": "john.updated@example.com"
- * }
+ * Steps:
+ * 1. Get updated data from request body
+ * 2. Check if new email is already taken
+ * 3. Update user in database
+ * 4. Send updated user data
  */
-export const updateProfile = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+export const updateProfile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Step 1: Get updated data from request body
         const { name, email } = req.body;
 
-        // Check if email is being changed and if it's already taken
+        // Step 2: If email is being changed, check if it's already taken
         if (email && email !== req.user.email) {
             const existingUser = await User.findOne({ email });
             if (existingUser) {
-                throw ApiError.conflict(AUTH_MESSAGES.USER_EXISTS);
+                return res.status(409).json({
+                    success: false,
+                    message: 'Email is already in use'
+                });
             }
         }
 
+        // Step 3: Update user in database
         const user = await User.findByIdAndUpdate(
             req.user._id,
             { name, email },
-            { new: true, runValidators: true }
+            { new: true, runValidators: true } // Return updated user and run validation
         ).select('-password');
 
+        // Check if user was found
         if (!user) {
-            throw ApiError.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
         }
 
-        // Log profile update
-        logSecurityEvent('profile_updated', req, {
-            userId: user._id,
-            changes: { name, email },
+        // Step 4: Send updated user data
+        res.status(200).json({
+            success: true,
+            message: 'Profile updated successfully',
+            data: { user }
         });
 
-        return responseService.response({
-            res,
-            data: { user },
-            message: AUTH_MESSAGES.PROFILE_UPDATED,
-            statusCode: 200
-        });
+    } catch (error) {
+        // Pass error to error handling middleware
+        next(error);
     }
-);
+};
 
 /**
- * Change User Password
+ * ============================================
+ * CHANGE PASSWORD
+ * ============================================
  * 
- * Allows authenticated users to change their password.
- * Requires current password verification for security.
+ * This function allows users to change their password.
+ * User must be authenticated and provide current password.
  * 
- * **Security Features**:
- * - Current password must be provided and verified
- * - New password must meet complexity requirements (validated by Joi schema)
- * - New password cannot be the same as current password
- * - Password is hashed using bcrypt with 12 salt rounds
- * - Security event logging for audit trail
- * - Rate limited to 3 attempts per hour (applied in routes)
- * 
- * @route PUT /api/v1/auth/change-password
- * @access Private (requires authentication)
- * 
- * @param {string} req.body.currentPassword - User's current password
- * @param {string} req.body.newPassword - New password (min 8 chars, must include uppercase, lowercase, number, special char)
- * @param {string} req.body.confirmPassword - New password confirmation (must match newPassword)
- * 
- * @returns {Object} Response confirming password change
- * @returns {string} response.message - Success message
- * 
- * @throws {ApiError} 401 - Not authenticated (handled by auth middleware)
- * @throws {ApiError} 401 - Current password is incorrect
- * @throws {ApiError} 400 - New password is same as current password
- * @throws {ApiError} 404 - User not found
- * @throws {ApiError} 429 - Too many password change attempts (rate limit)
- * 
- * @example
- * PUT /api/v1/auth/change-password
- * Headers: { Authorization: "Bearer <token>" }
- * {
- *   "currentPassword": "OldPass123!",
- *   "newPassword": "NewSecurePass456!",
- *   "confirmPassword": "NewSecurePass456!"
- * }
+ * Steps:
+ * 1. Get passwords from request body
+ * 2. Find user and verify current password
+ * 3. Check that new password is different
+ * 4. Hash new password
+ * 5. Update password in database
+ * 6. Send success response
  */
-export const changePassword = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+export const changePassword = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Step 1: Get passwords from request body
         const { currentPassword, newPassword } = req.body;
 
-        // Get user with password field
+        // Step 2: Get user with password field
         const user = await User.findById(req.user._id).select('+password');
 
         if (!user) {
-            throw ApiError.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
         }
 
-        // Verify current password
+        // Step 3: Verify current password
         const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
         if (!isCurrentPasswordValid) {
-            // Log failed password change attempt
-            logSecurityEvent('password_change_failed_invalid_current', req, {
-                userId: user._id,
-                reason: 'invalid_current_password',
+            return res.status(401).json({
+                success: false,
+                message: 'Current password is incorrect'
             });
-            throw ApiError.unauthorized(AUTH_MESSAGES.INVALID_CURRENT_PASSWORD);
         }
 
-        // Check if new password is same as current password
+        // Step 4: Check if new password is same as current password
         const isSamePassword = await bcrypt.compare(newPassword, user.password);
         if (isSamePassword) {
-            logSecurityEvent('password_change_failed_reuse', req, {
-                userId: user._id,
-                reason: 'password_reuse',
+            return res.status(400).json({
+                success: false,
+                message: 'New password must be different from current password'
             });
-            throw ApiError.badRequest(AUTH_MESSAGES.PASSWORD_REUSE);
         }
 
-        // Hash new password
-        const hashedPassword = await bcrypt.hash(newPassword, HASHING.SALT_ROUNDS);
+        // Step 5: Hash new password (12 rounds for security)
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-        // Update password
+        // Step 6: Update password in database
         await User.findByIdAndUpdate(user._id, { password: hashedPassword });
 
-        // Log successful password change
-        logSecurityEvent('password_changed', req, {
-            userId: user._id,
-            email: user.email,
+        // Step 7: Send success response
+        res.status(200).json({
+            success: true,
+            message: 'Password changed successfully',
+            data: {}
         });
 
-        return responseService.response({
-            res,
-            data: {},
-            message: AUTH_MESSAGES.PASSWORD_CHANGED,
-            statusCode: 200
-        });
+    } catch (error) {
+        // Pass error to error handling middleware
+        next(error);
     }
-);
-
+};
