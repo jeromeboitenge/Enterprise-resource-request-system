@@ -29,9 +29,7 @@ const envSchema = Joi.object({
     RATE_LIMIT_MAX_REQUESTS: Joi.number().default(100)
 }).unknown(true); // Allow other environment variables
 
-/**
- * Validate environment variables
- */
+
 export const validateEnv = (): void => {
     const { error, value } = envSchema.validate(process.env, {
         abortEarly: false,
@@ -43,12 +41,12 @@ export const validateEnv = (): void => {
             return `  - ${detail.message}`;
         }).join('\n');
 
-        logger.error('❌ Environment validation failed:\n' + errorMessages);
+        logger.error(' Environment validation failed:\n' + errorMessages);
 
         throw new Error(
             `Environment validation failed. Please check your .env file:\n${errorMessages}`
         );
     }
 
-    logger.info('✅ Environment variables validated successfully');
+    logger.info(' Environment variables validated successfully');
 };
