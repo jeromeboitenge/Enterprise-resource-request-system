@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { RequestStatus } from '../types/request.interface';
+import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 
 export const createRequest = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -23,7 +24,6 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
 
         const request = await prisma.request.create({
             data: {
-                userId: req.user.id,
                 userId: req.user.id,
                 departmentId: req.user.departmentId,
                 title,
@@ -59,22 +59,26 @@ export const getMyRequests = async (req: Request, res: Response, next: NextFunct
             filter.status = req.query.status as string;
         }
 
-        const requests = await prisma.request.findMany({
-            where: filter,
-            include: {
-                user: { select: { name: true, email: true, role: true } },
-                department: { select: { name: true, code: true } }
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+        const { page, limit, skip, take } = getPaginationParams(req.query);
+
+        const [total, requests] = await Promise.all([
+            prisma.request.count({ where: filter }),
+            prisma.request.findMany({
+                where: filter,
+                include: {
+                    user: { select: { name: true, email: true, role: true } },
+                    department: { select: { name: true, code: true } }
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take
+            })
+        ]);
 
         res.status(200).json({
             success: true,
             message: 'Requests retrieved successfully',
-            data: {
-                count: requests.length,
-                requests
-            }
+            data: createPaginatedResponse(requests, total, page, limit)
         });
     } catch (error) {
         next(error);
@@ -93,22 +97,26 @@ export const getAllRequests = async (req: Request, res: Response, next: NextFunc
             filter.departmentId = req.query.departmentId as string;
         }
 
-        const requests = await prisma.request.findMany({
-            where: filter,
-            include: {
-                user: { select: { name: true, email: true, role: true, department: true } },
-                department: { select: { name: true, code: true } }
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+        const { page, limit, skip, take } = getPaginationParams(req.query);
+
+        const [total, requests] = await Promise.all([
+            prisma.request.count({ where: filter }),
+            prisma.request.findMany({
+                where: filter,
+                include: {
+                    user: { select: { name: true, email: true, role: true, department: true } },
+                    department: { select: { name: true, code: true } }
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take
+            })
+        ]);
 
         res.status(200).json({
             success: true,
             message: 'Requests retrieved successfully',
-            data: {
-                count: requests.length,
-                requests
-            }
+            data: createPaginatedResponse(requests, total, page, limit)
         });
     } catch (error) {
         next(error);
@@ -408,22 +416,26 @@ export const getDepartmentRequests = async (req: Request, res: Response, next: N
             filter.status = req.query.status as string;
         }
 
-        const requests = await prisma.request.findMany({
-            where: filter,
-            include: {
-                user: { select: { name: true, email: true, role: true } },
-                department: { select: { name: true } }
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+        const { page, limit, skip, take } = getPaginationParams(req.query);
+
+        const [total, requests] = await Promise.all([
+            prisma.request.count({ where: filter }),
+            prisma.request.findMany({
+                where: filter,
+                include: {
+                    user: { select: { name: true, email: true, role: true } },
+                    department: { select: { name: true } }
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take
+            })
+        ]);
 
         res.status(200).json({
             success: true,
             message: 'Department requests retrieved successfully',
-            data: {
-                count: requests.length,
-                requests
-            }
+            data: createPaginatedResponse(requests, total, page, limit)
         });
     } catch (error) {
         next(error);

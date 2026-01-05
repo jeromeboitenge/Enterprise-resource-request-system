@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
+import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 
 export const createDepartment = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -32,17 +33,21 @@ export const createDepartment = async (req: Request, res: Response, next: NextFu
 
 export const getAllDepartments = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const departments = await prisma.department.findMany({
-            orderBy: { name: 'asc' }
-        });
+        const { page, limit, skip, take } = getPaginationParams(req.query);
+
+        const [total, departments] = await Promise.all([
+            prisma.department.count(),
+            prisma.department.findMany({
+                orderBy: { name: 'asc' },
+                skip,
+                take
+            })
+        ]);
 
         res.status(200).json({
             success: true,
             message: 'Departments retrieved successfully',
-            data: {
-                count: departments.length,
-                departments
-            }
+            data: createPaginatedResponse(departments, total, page, limit)
         });
     } catch (error) {
         next(error);
