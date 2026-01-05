@@ -12,7 +12,7 @@ import {
 } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate';
-import { createUserSchema, loginSchema, changePasswordSchema } from '../schema/user.validation';
+import { createUserSchema, loginSchema, changePasswordSchema, resetPasswordWithEmailSchema } from '../schema/user.validation';
 import { authLimiter, strictLimiter } from '../middleware/rate-limiter.middleware';
 
 const router = Router();
@@ -216,7 +216,7 @@ router.post('/forgot-password', authLimiter, forgotPassword);
  *       200:
  *         description: Password reset successfully
  */
-router.post('/reset-password', authLimiter, resetPassword);
+router.post('/reset-password', authLimiter, validate(resetPasswordWithEmailSchema), resetPassword);
 
 /**
  * @swagger

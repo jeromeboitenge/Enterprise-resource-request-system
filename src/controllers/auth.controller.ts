@@ -352,7 +352,8 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
             where: { id: user.id },
             data: {
                 otpCode: otp,
-                otpExpiresAt
+                otpExpiresAt,
+                otpVerified: false
             }
         });
 
@@ -392,6 +393,12 @@ export const verifyResetOtp = async (req: Request, res: Response, next: NextFunc
             });
         }
 
+        // Mark OTP as verified so they can reset password without sending it again
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { otpVerified: true }
+        });
+
         res.status(200).json({
             success: true,
             message: 'OTP verified successfully'
@@ -403,7 +410,7 @@ export const verifyResetOtp = async (req: Request, res: Response, next: NextFunc
 
 export const resetPassword = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { email, otp, newPassword } = req.body;
+        const { email, newPassword } = req.body;
 
         const user = await prisma.user.findUnique({ where: { email } });
 
@@ -414,10 +421,27 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        if (user.otpCode !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+        // Check if the user has verified the OTP
+        if (!user.otpVerified) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid or expired OTP'
+                message: 'Please verify OTP first'
+            });
+        }
+
+        // Also check if OTP is expired, as verification shouldn't last forever
+        if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: 'OTP Session expired. Please start over.'
+            });
+        }
+
+        const isSamePassword = await bcrypt.compare(newPassword, user.password);
+        if (isSamePassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'New password must be different from current password'
             });
         }
 
@@ -428,7 +452,8 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
             data: {
                 password: hashedPassword,
                 otpCode: null,
-                otpExpiresAt: null
+                otpExpiresAt: null,
+                otpVerified: false
             }
         });
 

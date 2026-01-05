@@ -75,3 +75,13 @@ export const resetPasswordSchema = Joi.object({
             'any.required': 'Password confirmation is required'
         })
 });
+export const resetPasswordWithEmailSchema = Joi.object({
+    email: emailSchema,
+    newPassword: passwordSchema,
+    confirmPassword: Joi.string()
+        .valid(Joi.ref('newPassword'))
+        .optional() // Optional for now to maintain backward compatibility with current testing, or can be required. User didn't ask for it.
+        .messages({
+            'any.only': 'Passwords do not match'
+        })
+});
