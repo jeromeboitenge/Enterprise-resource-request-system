@@ -175,8 +175,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             email: user.email,
             role: user.role,
             department: user.department,
-            isActive: user.isActive,
-            lastLogin: user.lastLogin
+            isActive: user.isActive
         };
 
         // Step 8: Send success response

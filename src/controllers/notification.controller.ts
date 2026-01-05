@@ -1,18 +1,25 @@
 import { Request, Response, NextFunction } from 'express';
 import { NotificationService } from '../services/notification.service';
-import { responseService } from '../utils/ResponseService';
-import { ApiError } from '../utils/ApiError';
-import { asyncHandler } from '../utils/asyncHandler';
 
 /**
- * Get user notifications
- * @route GET /api/v1/notifications
- * @access Private
+ * ============================================
+ * GET USER NOTIFICATIONS
+ * ============================================
+ * 
+ * This function gets all notifications for the current user.
+ * Can filter by read/unread status and paginate results.
+ * 
+ * Steps:
+ * 1. Get filter parameters from query
+ * 2. Call notification service to get notifications
+ * 3. Send response with notifications
  */
-export const getNotifications = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+export const getNotifications = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Step 1: Get filter parameters from query
         const { isRead, page, limit } = req.query;
 
+        // Step 2: Get user notifications from service
         const result = await NotificationService.getUserNotifications(
             req.user._id.toString(),
             {
@@ -22,79 +29,128 @@ export const getNotifications = asyncHandler(
             }
         );
 
-        return responseService.response({
-            res,
-            data: result,
+        // Step 3: Send response
+        res.status(200).json({
+            success: true,
             message: 'Notifications retrieved successfully',
-            statusCode: 200
+            data: result
         });
+
+    } catch (error) {
+        // Pass error to error handling middleware
+        next(error);
     }
-);
+};
 
 /**
- * Mark notification as read
- * @route PUT /api/v1/notifications/:id/read
- * @access Private
+ * ============================================
+ * MARK NOTIFICATION AS READ
+ * ============================================
+ * 
+ * This function marks a single notification as read.
+ * User can only mark their own notifications.
+ * 
+ * Steps:
+ * 1. Get notification ID from URL
+ * 2. Mark notification as read using service
+ * 3. Send response with updated notification
  */
-export const markAsRead = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+export const markAsRead = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Step 1: Mark notification as read
         const notification = await NotificationService.markAsRead(
             req.params.id,
             req.user._id.toString()
         );
 
+        // Step 2: Check if notification was found
         if (!notification) {
-            throw ApiError.notFound('Notification not found');
+            return res.status(404).json({
+                success: false,
+                message: 'Notification not found'
+            });
         }
 
-        return responseService.response({
-            res,
-            data: { notification },
+        // Step 3: Send response
+        res.status(200).json({
+            success: true,
             message: 'Notification marked as read',
-            statusCode: 200
+            data: { notification }
         });
+
+    } catch (error) {
+        // Pass error to error handling middleware
+        next(error);
     }
-);
+};
 
 /**
- * Mark all notifications as read
- * @route PUT /api/v1/notifications/read-all
- * @access Private
+ * ============================================
+ * MARK ALL NOTIFICATIONS AS READ
+ * ============================================
+ * 
+ * This function marks all user's notifications as read.
+ * 
+ * Steps:
+ * 1. Call service to mark all notifications as read
+ * 2. Send success response
  */
-export const markAllAsRead = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+export const markAllAsRead = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Step 1: Mark all notifications as read for current user
         await NotificationService.markAllAsRead(req.user._id.toString());
 
-        return responseService.response({
-            res,
-            data: null,
+        // Step 2: Send success response
+        res.status(200).json({
+            success: true,
             message: 'All notifications marked as read',
-            statusCode: 200
+            data: null
         });
+
+    } catch (error) {
+        // Pass error to error handling middleware
+        next(error);
     }
-);
+};
 
 /**
- * Delete notification
- * @route DELETE /api/v1/notifications/:id
- * @access Private
+ * ============================================
+ * DELETE NOTIFICATION
+ * ============================================
+ * 
+ * This function deletes a notification.
+ * User can only delete their own notifications.
+ * 
+ * Steps:
+ * 1. Get notification ID from URL
+ * 2. Delete notification using service
+ * 3. Send success response
  */
-export const deleteNotification = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+export const deleteNotification = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Step 1: Delete notification
         const notification = await NotificationService.delete(
             req.params.id,
             req.user._id.toString()
         );
 
+        // Step 2: Check if notification was found
         if (!notification) {
-            throw ApiError.notFound('Notification not found');
+            return res.status(404).json({
+                success: false,
+                message: 'Notification not found'
+            });
         }
 
-        return responseService.response({
-            res,
-            data: null,
+        // Step 3: Send success response
+        res.status(200).json({
+            success: true,
             message: 'Notification deleted successfully',
-            statusCode: 200
+            data: null
         });
+
+    } catch (error) {
+        // Pass error to error handling middleware
+        next(error);
     }
-);
+};

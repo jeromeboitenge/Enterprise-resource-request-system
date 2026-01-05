@@ -1,10 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiError } from '../utils/ApiError';
 import mongoose from 'mongoose';
 
 /**
- * Global error handling middleware
- * Catches all errors and sends consistent error responses
+ * ============================================
+ * GLOBAL ERROR HANDLER
+ * ============================================
+ * 
+ * This middleware catches all errors and sends consistent error responses.
+ * It should be the last middleware in the application.
+ * 
+ * Handles different types of errors:
+ * - Mongoose validation errors
+ * - Mongoose duplicate key errors
+ * - Mongoose cast errors (invalid ID)
+ * - JWT errors
+ * - Custom application errors
  */
 export const errorHandler = (
     err: any,
@@ -12,69 +22,85 @@ export const errorHandler = (
     res: Response,
     next: NextFunction
 ) => {
-    let error = err;
+    // Default error values
+    let statusCode = err.statusCode || 500;
+    let message = err.message || 'Something went wrong';
+    let errors = err.errors;
 
-    // Handle Mongoose validation errors
+    // Handle Mongoose Validation Errors
+    // Example: Missing required fields, invalid data types
     if (err instanceof mongoose.Error.ValidationError) {
-        const errors = Object.values(err.errors).map((e: any) => ({
+        statusCode = 400;
+        message = 'Validation failed';
+        errors = Object.values(err.errors).map((e: any) => ({
             field: e.path,
             message: e.message
         }));
-        error = ApiError.badRequest('Validation failed', errors);
     }
 
-    // Handle Mongoose duplicate key errors
+    // Handle Mongoose Duplicate Key Errors
+    // Example: Trying to create user with existing email
     if (err.code === 11000) {
+        statusCode = 409;
         const field = Object.keys(err.keyPattern)[0];
-        error = ApiError.conflict(`${field} already exists`);
+        message = `${field} already exists`;
     }
 
-    // Handle Mongoose CastError (invalid ObjectId)
+    // Handle Mongoose Cast Errors
+    // Example: Invalid MongoDB ObjectId format
     if (err instanceof mongoose.Error.CastError) {
-        error = ApiError.badRequest(`Invalid ${err.path}: ${err.value}`);
+        statusCode = 400;
+        message = `Invalid ${err.path}: ${err.value}`;
     }
 
-    // Handle JWT errors
+    // Handle JWT Errors
     if (err.name === 'JsonWebTokenError') {
-        error = ApiError.unauthorized('Invalid token');
+        statusCode = 401;
+        message = 'Invalid token. Please login again.';
     }
 
     if (err.name === 'TokenExpiredError') {
-        error = ApiError.unauthorized('Token expired');
+        statusCode = 401;
+        message = 'Token expired. Please login again.';
     }
 
-    // Default to ApiError if not already
-    if (!(error instanceof ApiError)) {
-        error = new ApiError(
-            err.statusCode || 500,
-            err.message || 'Internal server error',
-            false
-        );
+    // Log error for debugging (in development)
+    if (process.env.NODE_ENV === 'development') {
+        console.error('Error:', err);
     }
 
     // Send error response
     const response: any = {
         success: false,
-        message: error.message,
-        statusCode: error.statusCode
+        message: message,
+        statusCode: statusCode
     };
 
-    // Include error details in development
+    // Include error stack in development mode
     if (process.env.NODE_ENV === 'development') {
-        response.stack = error.stack;
-        response.errors = error.errors;
-    } else if (error.errors) {
-        // Include validation errors in production
-        response.errors = error.errors;
+        response.stack = err.stack;
     }
 
-    res.status(error.statusCode).json(response);
+    // Include validation errors if present
+    if (errors) {
+        response.errors = errors;
+    }
+
+    res.status(statusCode).json(response);
 };
 
 /**
- * Handle 404 errors for undefined routes
+ * ============================================
+ * 404 NOT FOUND HANDLER
+ * ============================================
+ * 
+ * This middleware handles requests to undefined routes.
+ * It should be placed after all valid routes.
  */
 export const notFoundHandler = (req: Request, res: Response, next: NextFunction) => {
-    const error = ApiError.notFound(`Route ${req.originalUrl} not found`);
-    next(error);
+    res.status(404).json({
+        success: false,
+        message: `Route ${req.originalUrl} not found`,
+        statusCode: 404
+    });
 };
