@@ -9,9 +9,7 @@ const envSchema = Joi.object({
         .valid('development', 'production', 'test')
         .default('development'),
 
-    DB_URL: Joi.string().required(),
-    DB_USERNAME: Joi.string().required(),
-    DB_PASSWORD: Joi.string().required(),
+    DATABASE_URL: Joi.string().required(),
 
     JWT_SECRET: Joi.string().min(32).required(),
     JWT_EXPIRES_IN: Joi.string().default('1d'),

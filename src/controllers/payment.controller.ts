@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import ResourceRequest from '../model/request';
-import Payment from '../model/payment';
+import prisma from '../lib/prisma';
 import { RequestStatus } from '../types/request.interface';
 
 export const processPayment = async (req: Request, res: Response, next: NextFunction) => {
@@ -8,9 +7,13 @@ export const processPayment = async (req: Request, res: Response, next: NextFunc
         const { requestId } = req.params;
         const { amountPaid, paymentMethod } = req.body;
 
-        const request = await ResourceRequest.findById(requestId)
-            .populate('userId', 'name email')
-            .populate('departmentId', 'name');
+        const request = await prisma.request.findUnique({
+            where: { id: requestId },
+            include: {
+                user: { select: { name: true, email: true } },
+                department: { select: { name: true } }
+            }
+        });
 
         if (!request) {
             return res.status(404).json({
@@ -26,7 +29,10 @@ export const processPayment = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        const existingPayment = await Payment.findOne({ requestId });
+        const existingPayment = await prisma.payment.findUnique({
+            where: { requestId }
+        });
+
         if (existingPayment) {
             return res.status(409).json({
                 success: false,
@@ -34,31 +40,40 @@ export const processPayment = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        if (amountPaid > request.estimatedCost) {
+        // Decimal handling in Prisma/JS might need casting or usage of Decimal.js passed from Prisma
+        // request.estimatedCost is Decimal.
+        if (Number(amountPaid) > Number(request.estimatedCost)) {
             return res.status(400).json({
                 success: false,
                 message: 'Payment amount cannot exceed estimated cost'
             });
         }
 
-        const payment = await Payment.create({
-            requestId,
-            financeOfficerId: req.user._id,
-            amountPaid,
-            paymentMethod
+        const payment = await prisma.payment.create({
+            data: {
+                requestId,
+                financeOfficerId: req.user.id,
+                amountPaid: Number(amountPaid), // Ensure standard number or Decimal compatible
+                paymentMethod
+            }
         });
 
-        request.status = RequestStatus.Funded;
-        await request.save();
+        const updatedRequest = await prisma.request.update({
+            where: { id: requestId },
+            data: { status: RequestStatus.Funded }
+        });
 
-        await payment.populate('financeOfficerId', 'name email role');
+        const paymentWithOfficer = await prisma.payment.findUnique({
+            where: { id: payment.id },
+            include: { financeOfficer: { select: { name: true, email: true, role: true } } }
+        });
 
         res.status(201).json({
             success: true,
             message: 'Payment processed successfully',
             data: {
-                payment,
-                request
+                payment: paymentWithOfficer,
+                request: updatedRequest
             }
         });
     } catch (error) {
@@ -73,25 +88,29 @@ export const getPaymentHistory = async (req: Request, res: Response, next: NextF
         const filter: any = {};
 
         if (paymentMethod) {
-            filter.paymentMethod = paymentMethod;
+            filter.paymentMethod = paymentMethod as string;
         }
 
         if (startDate || endDate) {
             filter.paymentDate = {};
             if (startDate) {
-                filter.paymentDate.$gte = new Date(startDate as string);
+                filter.paymentDate.gte = new Date(startDate as string);
             }
             if (endDate) {
-                filter.paymentDate.$lte = new Date(endDate as string);
+                filter.paymentDate.lte = new Date(endDate as string);
             }
         }
 
-        const payments = await Payment.find(filter)
-            .populate('requestId')
-            .populate('financeOfficerId', 'name email role')
-            .sort({ paymentDate: -1 });
+        const payments = await prisma.payment.findMany({
+            where: filter,
+            include: {
+                request: true,
+                financeOfficer: { select: { name: true, email: true, role: true } }
+            },
+            orderBy: { paymentDate: 'desc' }
+        });
 
-        const totalAmount = payments.reduce((sum, payment) => sum + payment.amountPaid, 0);
+        const totalAmount = payments.reduce((sum, payment) => sum + Number(payment.amountPaid), 0);
 
         res.status(200).json({
             success: true,
@@ -109,15 +128,18 @@ export const getPaymentHistory = async (req: Request, res: Response, next: NextF
 
 export const getPayment = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const payment = await Payment.findById(req.params.id)
-            .populate({
-                path: 'requestId',
-                populate: [
-                    { path: 'userId', select: 'name email department' },
-                    { path: 'departmentId', select: 'name' }
-                ]
-            })
-            .populate('financeOfficerId', 'name email role');
+        const payment = await prisma.payment.findUnique({
+            where: { id: req.params.id },
+            include: {
+                request: {
+                    include: {
+                        user: { select: { name: true, email: true, department: true } },
+                        department: { select: { name: true } }
+                    }
+                },
+                financeOfficer: { select: { name: true, email: true, role: true } }
+            }
+        });
 
         if (!payment) {
             return res.status(404).json({
@@ -138,12 +160,16 @@ export const getPayment = async (req: Request, res: Response, next: NextFunction
 
 export const getPendingPayments = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const requests = await ResourceRequest.find({ status: RequestStatus.Approved })
-            .populate('userId', 'name email role department')
-            .populate('departmentId', 'name')
-            .sort({ createdAt: -1 });
+        const requests = await prisma.request.findMany({
+            where: { status: RequestStatus.Approved as any },
+            include: {
+                user: { select: { name: true, email: true, role: true, department: true } },
+                department: { select: { name: true } }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
 
-        const totalEstimatedCost = requests.reduce((sum, req) => sum + req.estimatedCost, 0);
+        const totalEstimatedCost = requests.reduce((sum, req) => sum + Number(req.estimatedCost), 0);
 
         res.status(200).json({
             success: true,

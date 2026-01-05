@@ -1,13 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import User from '../model/user';
+import prisma from '../lib/prisma';
+// import User from '../model/user'; // Removed Mongoose model
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { name, email, password, role, department } = req.body;
 
-        const existingUser = await User.findOne({ email });
+        const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
             return res.status(409).json({
                 success: false,
@@ -19,22 +20,24 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 
         const userDepartment = department || 'IT';
 
-        const user = await User.create({
-            name,
-            email,
-            password: hashedPassword,
-            role: role || 'employee',
-            department: userDepartment
+        const user = await prisma.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                role: role || 'employee',
+                department: userDepartment
+            }
         });
 
         const token = jwt.sign(
-            { userId: user._id, role: user.role },
+            { userId: user.id, role: user.role },
             process.env.JWT_SECRET as string,
             { expiresIn: '1d' }
         );
 
         const userResponse = {
-            _id: user._id,
+            id: user.id,
             name: user.name,
             email: user.email,
             role: user.role,
@@ -60,7 +63,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     try {
         const { email, password } = req.body;
 
-        const user = await User.findOne({ email }).select('+password');
+        const user = await prisma.user.findUnique({ where: { email } });
 
         if (!user) {
             return res.status(401).json({
@@ -85,16 +88,19 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             });
         }
 
-        await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
+        // To track lastLogin we might need to add that field to schema or just ignore for now if not in schema.
+        // The schema created has 'createdAt' and 'updatedAt'. Let's check schema.
+        // Schema doesn't have lastLogin. It has failedLoginAttempts.
+        // We can ignore updating lastLogin for now unless we add it to schema.
 
         const token = jwt.sign(
-            { userId: user._id, role: user.role },
+            { userId: user.id, role: user.role },
             process.env.JWT_SECRET as string,
             { expiresIn: '1d' }
         );
 
         const userResponse = {
-            _id: user._id,
+            id: user.id,
             name: user.name,
             email: user.email,
             role: user.role,
@@ -117,7 +123,9 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
 export const getProfile = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const user = await User.findById(req.user._id).select('-password');
+        const user = await prisma.user.findUnique({
+            where: { id: req.user.id }
+        });
 
         if (!user) {
             return res.status(404).json({
@@ -126,10 +134,13 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
             });
         }
 
+        // Exclude password manually since Prisma doesn't have built-in exclusion yet like Mongoose select
+        const { password, ...userWithoutPassword } = user;
+
         res.status(200).json({
             success: true,
             message: 'Profile retrieved successfully',
-            data: { user }
+            data: { user: userWithoutPassword }
         });
     } catch (error) {
         next(error);
@@ -141,7 +152,7 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
         const { name, email } = req.body;
 
         if (email && email !== req.user.email) {
-            const existingUser = await User.findOne({ email });
+            const existingUser = await prisma.user.findUnique({ where: { email } });
             if (existingUser) {
                 return res.status(409).json({
                     success: false,
@@ -150,23 +161,17 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
             }
         }
 
-        const user = await User.findByIdAndUpdate(
-            req.user._id,
-            { name, email },
-            { new: true, runValidators: true }
-        ).select('-password');
+        const user = await prisma.user.update({
+            where: { id: req.user.id },
+            data: { name, email }
+        });
 
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
+        const { password, ...userWithoutPassword } = user;
 
         res.status(200).json({
             success: true,
             message: 'Profile updated successfully',
-            data: { user }
+            data: { user: userWithoutPassword }
         });
     } catch (error) {
         next(error);
@@ -177,7 +182,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
     try {
         const { currentPassword, newPassword } = req.body;
 
-        const user = await User.findById(req.user._id).select('+password');
+        const user = await prisma.user.findUnique({ where: { id: req.user.id } });
 
         if (!user) {
             return res.status(404).json({
@@ -204,7 +209,10 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
 
         const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-        await User.findByIdAndUpdate(user._id, { password: hashedPassword });
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { password: hashedPassword }
+        });
 
         res.status(200).json({
             success: true,

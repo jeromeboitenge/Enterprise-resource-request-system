@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import ResourceRequest from '../model/request';
-import Approval from '../model/approval';
+import prisma from '../lib/prisma';
 import { RequestStatus } from '../types/request.interface';
 
 export const approveRequest = async (req: Request, res: Response, next: NextFunction) => {
@@ -8,9 +7,13 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
         const { requestId } = req.params;
         const { comment } = req.body;
 
-        const request = await ResourceRequest.findById(requestId)
-            .populate('userId', 'name email')
-            .populate('departmentId', 'name');
+        const request = await prisma.request.findUnique({
+            where: { id: requestId },
+            include: {
+                user: { select: { name: true, email: true } },
+                department: { select: { name: true } }
+            }
+        });
 
         if (!request) {
             return res.status(404).json({
@@ -26,24 +29,31 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        const approval = await Approval.create({
-            requestId,
-            approverId: req.user._id,
-            decision: 'approved',
-            comment: comment || 'Approved'
+        const approval = await prisma.approval.create({
+            data: {
+                requestId,
+                approverId: req.user.id,
+                decision: 'approved',
+                comment: comment || 'Approved'
+            }
         });
 
-        request.status = RequestStatus.Approved;
-        await request.save();
+        const updatedRequest = await prisma.request.update({
+            where: { id: requestId },
+            data: { status: RequestStatus.Approved }
+        });
 
-        await approval.populate('approverId', 'name email role');
+        const approvalWithApprover = await prisma.approval.findUnique({
+            where: { id: approval.id },
+            include: { approver: { select: { name: true, email: true, role: true } } }
+        });
 
         res.status(200).json({
             success: true,
             message: 'Request approved successfully',
             data: {
-                request,
-                approval
+                request: updatedRequest,
+                approval: approvalWithApprover
             }
         });
     } catch (error) {
@@ -56,9 +66,13 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
         const { requestId } = req.params;
         const { comment } = req.body;
 
-        const request = await ResourceRequest.findById(requestId)
-            .populate('userId', 'name email')
-            .populate('departmentId', 'name');
+        const request = await prisma.request.findUnique({
+            where: { id: requestId },
+            include: {
+                user: { select: { name: true, email: true } },
+                department: { select: { name: true } }
+            }
+        });
 
         if (!request) {
             return res.status(404).json({
@@ -74,24 +88,31 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        const approval = await Approval.create({
-            requestId,
-            approverId: req.user._id,
-            decision: 'rejected',
-            comment: comment || 'Rejected'
+        const approval = await prisma.approval.create({
+            data: {
+                requestId,
+                approverId: req.user.id,
+                decision: 'rejected',
+                comment: comment || 'Rejected'
+            }
         });
 
-        request.status = RequestStatus.Rejected;
-        await request.save();
+        const updatedRequest = await prisma.request.update({
+            where: { id: requestId },
+            data: { status: RequestStatus.Rejected }
+        });
 
-        await approval.populate('approverId', 'name email role');
+        const approvalWithApprover = await prisma.approval.findUnique({
+            where: { id: approval.id },
+            include: { approver: { select: { name: true, email: true, role: true } } }
+        });
 
         res.status(200).json({
             success: true,
             message: 'Request rejected successfully',
             data: {
-                request,
-                approval
+                request: updatedRequest,
+                approval: approvalWithApprover
             }
         });
     } catch (error) {
@@ -103,7 +124,7 @@ export const getApprovalHistory = async (req: Request, res: Response, next: Next
     try {
         const { requestId } = req.params;
 
-        const request = await ResourceRequest.findById(requestId);
+        const request = await prisma.request.findUnique({ where: { id: requestId } });
         if (!request) {
             return res.status(404).json({
                 success: false,
@@ -111,9 +132,13 @@ export const getApprovalHistory = async (req: Request, res: Response, next: Next
             });
         }
 
-        const approvals = await Approval.find({ requestId })
-            .populate('approverId', 'name email role')
-            .sort({ decisionDate: -1 });
+        const approvals = await prisma.approval.findMany({
+            where: { requestId },
+            include: {
+                approver: { select: { name: true, email: true, role: true } }
+            },
+            orderBy: { decisionDate: 'desc' }
+        });
 
         res.status(200).json({
             success: true,
@@ -130,14 +155,16 @@ export const getApprovalHistory = async (req: Request, res: Response, next: Next
 
 export const getPendingApprovals = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const filter: any = {
-            status: { $in: [RequestStatus.Submitted, RequestStatus.UnderReview] }
-        };
-
-        const requests = await ResourceRequest.find(filter)
-            .populate('userId', 'name email role department')
-            .populate('departmentId', 'name')
-            .sort({ createdAt: -1 });
+        const requests = await prisma.request.findMany({
+            where: {
+                status: { in: [RequestStatus.Submitted, RequestStatus.UnderReview] as any } // Cast as any if TS complains about string/enum mismatch
+            },
+            include: {
+                user: { select: { name: true, email: true, role: true, department: true } },
+                department: { select: { name: true } }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
 
         res.status(200).json({
             success: true,

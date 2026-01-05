@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import User from '../model/user';
+import prisma from '../lib/prisma';
 
 declare global {
     namespace Express {
@@ -29,7 +29,9 @@ export const authenticate = async (
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
 
-        const user = await User.findById(decoded.userId).select('-password');
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.userId }
+        });
 
         if (!user) {
             return res.status(401).json({
@@ -38,7 +40,8 @@ export const authenticate = async (
             });
         }
 
-        req.user = user;
+        const { password, ...userWithoutPassword } = user;
+        req.user = userWithoutPassword;
 
         next();
     } catch (error: any) {

@@ -6,7 +6,7 @@ export const getNotifications = async (req: Request, res: Response, next: NextFu
         const { isRead, page, limit } = req.query;
 
         const result = await NotificationService.getUserNotifications(
-            req.user._id.toString(),
+            req.user.id,
             {
                 isRead: isRead === 'true' ? true : isRead === 'false' ? false : undefined,
                 page: page ? Number(page) : undefined,
@@ -28,7 +28,7 @@ export const markAsRead = async (req: Request, res: Response, next: NextFunction
     try {
         const notification = await NotificationService.markAsRead(
             req.params.id,
-            req.user._id.toString()
+            req.user.id
         );
 
         if (!notification) {
@@ -50,7 +50,7 @@ export const markAsRead = async (req: Request, res: Response, next: NextFunction
 
 export const markAllAsRead = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await NotificationService.markAllAsRead(req.user._id.toString());
+        await NotificationService.markAllAsRead(req.user.id);
 
         res.status(200).json({
             success: true,
@@ -66,7 +66,7 @@ export const deleteNotification = async (req: Request, res: Response, next: Next
     try {
         const notification = await NotificationService.delete(
             req.params.id,
-            req.user._id.toString()
+            req.user.id
         );
 
         if (!notification) {

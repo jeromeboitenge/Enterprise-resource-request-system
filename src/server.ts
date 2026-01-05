@@ -4,7 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import "dotenv/config";
 
-import { config, databaseConnection } from "./config";
+import { config } from "./config"; // removed databaseConnection
 import { validateEnv } from "./config/env.validator";
 import { mainRouter } from "./routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
@@ -14,6 +14,7 @@ import { requestIdMiddleware } from "./middleware/request-id.middleware";
 import logger from "./utils/logger";
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger.config';
+import prisma from './lib/prisma'; // Import prisma client
 
 try {
     validateEnv();
@@ -86,8 +87,9 @@ app.use(errorHandler);
 
 const startServer = async () => {
     try {
-
-        await databaseConnection();
+        // Verify Database Connection
+        await prisma.$connect();
+        logger.info('✅ Connected to PostgreSQL via Prisma');
 
         app.listen(config.port, () => {
             logger.info(`🚀 Server running on port ${config.port}`);
@@ -98,7 +100,7 @@ const startServer = async () => {
             logger.info(`📚 API Documentation: http://localhost:${config.port}/api-docs`);
         });
     } catch (error) {
-        logger.error("❌ Database connection failed:", error);
+        logger.error("❌ Server failed to start:", error);
         process.exit(1);
     }
 };

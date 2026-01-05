@@ -1,14 +1,6 @@
-import mongoSanitize from 'express-mongo-sanitize';
 import { Request, Response, NextFunction } from 'express';
 
-export const sanitizeInput = mongoSanitize({
-    replaceWith: '_', // Replace prohibited characters with underscore
-    onSanitize: ({ req, key }) => {
-        console.warn(`Sanitized potentially malicious input: ${key} in ${req.path}`);
-    }
-});
-
-export const customSanitize = (req: Request, res: Response, next: NextFunction) => {
+export const sanitizeInput = (req: Request, res: Response, next: NextFunction) => {
 
     const sanitizeString = (str: string): string => {
         if (typeof str !== 'string') return str;
@@ -55,3 +47,5 @@ export const customSanitize = (req: Request, res: Response, next: NextFunction) 
 
     next();
 };
+
+export const customSanitize = sanitizeInput;

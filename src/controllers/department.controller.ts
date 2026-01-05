@@ -1,11 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
-import Department from '../model/department';
+import prisma from '../lib/prisma';
 
 export const createDepartment = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { name, description } = req.body;
 
-        const existingDepartment = await Department.findOne({ name });
+        const existingDepartment = await prisma.department.findUnique({
+            where: { name }
+        });
+
         if (existingDepartment) {
             return res.status(409).json({
                 success: false,
@@ -13,7 +16,9 @@ export const createDepartment = async (req: Request, res: Response, next: NextFu
             });
         }
 
-        const department = await Department.create({ name, description });
+        const department = await prisma.department.create({
+            data: { name, description }
+        });
 
         res.status(201).json({
             success: true,
@@ -27,7 +32,9 @@ export const createDepartment = async (req: Request, res: Response, next: NextFu
 
 export const getAllDepartments = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const departments = await Department.find().sort({ name: 1 });
+        const departments = await prisma.department.findMany({
+            orderBy: { name: 'asc' }
+        });
 
         res.status(200).json({
             success: true,
@@ -44,7 +51,9 @@ export const getAllDepartments = async (req: Request, res: Response, next: NextF
 
 export const getDepartment = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const department = await Department.findById(req.params.id);
+        const department = await prisma.department.findUnique({
+            where: { id: req.params.id }
+        });
 
         if (!department) {
             return res.status(404).json({
@@ -68,10 +77,10 @@ export const updateDepartment = async (req: Request, res: Response, next: NextFu
         const { name, description } = req.body;
 
         if (name) {
-            const existingDepartment = await Department.findOne({ name });
+            const existingDepartment = await prisma.department.findUnique({ where: { name } });
 
             if (existingDepartment) {
-                const isSameDepartment = existingDepartment._id.toString() === req.params.id;
+                const isSameDepartment = existingDepartment.id === req.params.id;
 
                 if (!isSameDepartment) {
                     return res.status(409).json({
@@ -82,18 +91,18 @@ export const updateDepartment = async (req: Request, res: Response, next: NextFu
             }
         }
 
-        const department = await Department.findByIdAndUpdate(
-            req.params.id,
-            { name, description },
-            { new: true, runValidators: true }
-        );
-
-        if (!department) {
+        const deptExists = await prisma.department.findUnique({ where: { id: req.params.id } });
+        if (!deptExists) {
             return res.status(404).json({
                 success: false,
                 message: 'Department not found'
             });
         }
+
+        const department = await prisma.department.update({
+            where: { id: req.params.id },
+            data: { name, description }
+        });
 
         res.status(200).json({
             success: true,
@@ -107,14 +116,18 @@ export const updateDepartment = async (req: Request, res: Response, next: NextFu
 
 export const deleteDepartment = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const department = await Department.findByIdAndDelete(req.params.id);
+        const deptExists = await prisma.department.findUnique({ where: { id: req.params.id } });
 
-        if (!department) {
+        if (!deptExists) {
             return res.status(404).json({
                 success: false,
                 message: 'Department not found'
             });
         }
+
+        const department = await prisma.department.delete({
+            where: { id: req.params.id }
+        });
 
         res.status(200).json({
             success: true,

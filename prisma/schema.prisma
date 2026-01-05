@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String    @id @default(uuid())
+  name                String    @db.VarChar(100)
+  email               String    @unique @db.VarChar(255)
+  password            String    @db.VarChar(255)
+  role                String    @default("employee") @db.VarChar(50)
+  department          String?   @db.VarChar(100)
+  isActive            Boolean   @default(true) @map("is_active")
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  accountLockedUntil  DateTime? @map("account_locked_until")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  managedDepartments Department[] @relation("DepartmentManager")
+  requests           Request[]
+  approvals          Approval[]
+  processedPayments  Payment[]
+  notifications      Notification[]
+
+  @@map("users")
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String   @unique @db.VarChar(100)
+  code        String?  @unique @db.VarChar(50)
+  description String?  @db.Text
+  managerId   String?  @map("manager_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  manager  User?     @relation("DepartmentManager", fields: [managerId], references: [id])
+  requests Request[]
+
+  @@map("departments")
+}
+
+model Request {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  departmentId  String?  @map("department_id") // Optional because existing seed might not have it, but logically should be required. Making optional to be safe or enforced in app logic. Let's make it optional for now to avoid migration issues if data doesn't align, or better yet, keep it consistent with previous schema. Previous schema had it. Let's keep it String for now.
+  title         String   @db.VarChar(255)
+  resourceName  String   @map("resource_name") @db.VarChar(255)
+  resourceType  String   @map("resource_type") @db.VarChar(100)
+  description   String?  @db.Text
+  quantity      Int
+  estimatedCost Decimal  @map("estimated_cost") @db.Decimal(10, 2)
+  priority      String   @default("medium") @db.VarChar(20)
+  status        String   @default("draft") @db.VarChar(50)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  user       User        @relation(fields: [userId], references: [id])
+  department Department? @relation(fields: [departmentId], references: [id])
+  approvals  Approval[]
+  payment    Payment?
+
+  @@map("requests")
+}
+
+model Approval {
+  id           String   @id @default(uuid())
+  requestId    String   @map("request_id")
+  approverId   String   @map("approver_id")
+  decision     String   @db.VarChar(20)
+  comment      String?  @db.Text
+  decisionDate DateTime @default(now()) @map("decision_date")
+
+  // Relations
+  request  Request @relation(fields: [requestId], references: [id])
+  approver User    @relation(fields: [approverId], references: [id])
+
+  @@map("approvals")
+}
+
+model Payment {
+  id               String   @id @default(uuid())
+  requestId        String   @unique @map("request_id") // One payment per request
+  financeOfficerId String   @map("finance_officer_id")
+  amountPaid       Decimal  @map("amount_paid") @db.Decimal(10, 2)
+  paymentMethod    String   @map("payment_method") @db.VarChar(50)
+  paymentDate      DateTime @default(now()) @map("payment_date")
+
+  // Relations
+  request        Request @relation(fields: [requestId], references: [id])
+  financeOfficer User    @relation(fields: [financeOfficerId], references: [id])
+
+  @@map("payments")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String   @db.VarChar(255)
+  message   String   @db.Text
+  type      String   @default("info") @db.VarChar(50)
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import mongoose from 'mongoose';
+import { Prisma } from '@prisma/client';
 
 export const errorHandler = (
     err: any,
@@ -11,24 +11,17 @@ export const errorHandler = (
     let message = err.message || 'Something went wrong';
     let errors = err.errors;
 
-    if (err instanceof mongoose.Error.ValidationError) {
-        statusCode = 400;
-        message = 'Validation failed';
-        errors = Object.values(err.errors).map((e: any) => ({
-            field: e.path,
-            message: e.message
-        }));
-    }
-
-    if (err.code === 11000) {
-        statusCode = 409;
-        const field = Object.keys(err.keyPattern)[0];
-        message = `${field} already exists`;
-    }
-
-    if (err instanceof mongoose.Error.CastError) {
-        statusCode = 400;
-        message = `Invalid ${err.path}: ${err.value}`;
+    // Prisma Unique Constraint Violation
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+        if (err.code === 'P2002') {
+            statusCode = 409;
+            const target = (err.meta as any)?.target;
+            message = target ? `${target} already exists` : 'Record with this unique field already exists';
+        }
+        if (err.code === 'P2025') {
+            statusCode = 404;
+            message = 'Record not found';
+        }
     }
 
     if (err.name === 'JsonWebTokenError') {

@@ -8,4 +8,3 @@ export const config: ServerInterface = {
     prefix: String(process.env.PREFIX || "/api/v1"),
     jwtSecret: String(process.env.JWT_SECRET)
 }
-export * from "./database"
