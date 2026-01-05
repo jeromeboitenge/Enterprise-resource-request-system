@@ -21,8 +21,8 @@ model User {
   updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
 
   // Relations
-  department         Department?  @relation(fields: [departmentId], references: [id])
-  managedDepartments Department[] @relation("DepartmentManager")
+  department         Department?    @relation(fields: [departmentId], references: [id])
+  managedDepartments Department[]   @relation("DepartmentManager")
   requests           Request[]
   approvals          Approval[]
   processedPayments  Payment[]
@@ -41,7 +41,7 @@ model Department {
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
 
   // Relations
-  manager  User?     @relation("DepartmentManager", fields: [managerId], references: [id])
+  manager  User?     @relation("DepartmentManager", fields: [managerId], references: [id], onDelete: SetNull)
   users    User[]
   requests Request[]
 
@@ -51,7 +51,7 @@ model Department {
 model Request {
   id            String   @id @default(uuid())
   userId        String   @map("user_id")
-  departmentId  String?  @map("department_id") // Optional because existing seed might not have it, but logically should be required. Making optional to be safe or enforced in app logic. Let's make it optional for now to avoid migration issues if data doesn't align, or better yet, keep it consistent with previous schema. Previous schema had it. Let's keep it String for now.
+  departmentId  String   @map("department_id")
   title         String   @db.VarChar(255)
   resourceName  String   @map("resource_name") @db.VarChar(255)
   resourceType  String   @map("resource_type") @db.VarChar(100)
@@ -64,8 +64,8 @@ model Request {
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
 
   // Relations
-  user       User        @relation(fields: [userId], references: [id])
-  department Department? @relation(fields: [departmentId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+  department Department @relation(fields: [departmentId], references: [id])
   approvals  Approval[]
   payment    Payment?
 

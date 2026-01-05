@@ -26,7 +26,12 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
                 email,
                 password: hashedPassword,
                 role: role || 'employee',
-                department: userDepartment
+                department: {
+                    connectOrCreate: {
+                        where: { name: userDepartment },
+                        create: { name: userDepartment }
+                    }
+                }
             }
         });
 
@@ -41,7 +46,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
             name: user.name,
             email: user.email,
             role: user.role,
-            department: user.department,
+            department: userDepartment,
             isActive: user.isActive,
             createdAt: user.createdAt
         };
@@ -63,7 +68,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     try {
         const { email, password } = req.body;
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({ where: { email }, include: { department: true } });
 
         if (!user) {
             return res.status(401).json({
@@ -104,7 +109,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             name: user.name,
             email: user.email,
             role: user.role,
-            department: user.department,
+            department: user.department?.name,
             isActive: user.isActive
         };
 
