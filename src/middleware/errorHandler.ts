@@ -22,6 +22,11 @@ export const errorHandler = (
             statusCode = 404;
             message = 'Record not found';
         }
+        if (err.code === 'P2003') {
+            statusCode = 400;
+            const field = (err.meta as any)?.field_name;
+            message = field ? `Foreign key constraint failed on field: ${field}` : 'Related record not found (invalid ID provided)';
+        }
     }
 
     if (err.name === 'JsonWebTokenError') {
