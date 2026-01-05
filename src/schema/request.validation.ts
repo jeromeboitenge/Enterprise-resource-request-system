@@ -7,8 +7,7 @@ export const createRequestSchema = Joi.object({
     description: Joi.string().optional(),
     quantity: Joi.number().integer().min(1).required(),
     estimatedCost: Joi.number().min(0).required(),
-    priority: Joi.string().valid('low', 'medium', 'high', 'urgent').default('medium'),
-    departmentId: Joi.string().required()
+    priority: Joi.string().valid('low', 'medium', 'high', 'urgent').default('medium')
 });
 
 export const updateRequestSchema = Joi.object({

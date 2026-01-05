@@ -11,14 +11,21 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
             description,
             quantity,
             estimatedCost,
-            priority,
-            departmentId
+            priority
         } = req.body;
+
+        if (!req.user.departmentId) {
+            return res.status(400).json({
+                success: false,
+                message: 'You are not assigned to any department. Please contact admin.'
+            });
+        }
 
         const request = await prisma.request.create({
             data: {
                 userId: req.user.id,
-                departmentId,
+                userId: req.user.id,
+                departmentId: req.user.departmentId,
                 title,
                 resourceName,
                 resourceType,
