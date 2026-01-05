@@ -13,7 +13,7 @@ model User {
   email               String    @unique @db.VarChar(255)
   password            String    @db.VarChar(255)
   role                String    @default("employee") @db.VarChar(50)
-  department          String?   @db.VarChar(100)
+  departmentId        String?   @map("department_id")
   isActive            Boolean   @default(true) @map("is_active")
   failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
   accountLockedUntil  DateTime? @map("account_locked_until")
@@ -21,6 +21,7 @@ model User {
   updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
 
   // Relations
+  department         Department?  @relation(fields: [departmentId], references: [id])
   managedDepartments Department[] @relation("DepartmentManager")
   requests           Request[]
   approvals          Approval[]
@@ -41,6 +42,7 @@ model Department {
 
   // Relations
   manager  User?     @relation("DepartmentManager", fields: [managerId], references: [id])
+  users    User[]
   requests Request[]
 
   @@map("departments")
