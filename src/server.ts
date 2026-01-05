@@ -12,6 +12,8 @@ import { apiLimiter } from "./middleware/rate-limiter.middleware";
 import { sanitizeInput, customSanitize } from "./middleware/sanitize.middleware";
 import { requestIdMiddleware } from "./middleware/request-id.middleware";
 import logger from "./utils/logger";
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger.config';
 
 try {
     validateEnv();
@@ -27,16 +29,16 @@ app.use(requestIdMiddleware);
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
-            defaultSrc: ["'self'"],           // Only load resources from same origin
-            styleSrc: ["'self'", "'unsafe-inline'"],  // Allow inline styles (needed for some frameworks)
-            scriptSrc: ["'self'"],            // Only execute scripts from same origin
-            imgSrc: ["'self'", "data:", "https:"],  // Allow images from same origin, data URIs, and HTTPS
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:"],
         }
     },
     hsts: {
-        maxAge: 31536000,        // 1 year in seconds
-        includeSubDomains: true, // Apply to all subdomains
-        preload: true            // Enable HSTS preload list
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
     }
 }));
 
@@ -71,6 +73,11 @@ app.get("/", (req: Request, res: Response) => {
     });
 });
 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Enterprise Resource Request System API'
+}));
+
 app.use(config.prefix, mainRouter);
 
 app.use(notFoundHandler);
@@ -88,6 +95,7 @@ const startServer = async () => {
             logger.info(`🔒 CORS Origins: ${corsOrigins.join(', ')}`);
             logger.info(`🛡️  Security: Helmet, Rate Limiting, Input Sanitization enabled`);
             logger.info(`📊 Request ID tracking enabled`);
+            logger.info(`📚 API Documentation: http://localhost:${config.port}/api-docs`);
         });
     } catch (error) {
         logger.error("❌ Database connection failed:", error);

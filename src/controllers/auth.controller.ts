@@ -17,12 +17,14 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 
         const hashedPassword = await bcrypt.hash(password, 12);
 
+        const userDepartment = department || 'IT';
+
         const user = await User.create({
             name,
             email,
             password: hashedPassword,
             role: role || 'employee',
-            department
+            department: userDepartment
         });
 
         const token = jwt.sign(

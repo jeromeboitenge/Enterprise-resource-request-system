@@ -230,3 +230,112 @@ export const deleteRequest = async (req: Request, res: Response, next: NextFunct
         next(error);
     }
 };
+
+export const submitRequest = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const request = await ResourceRequest.findById(req.params.id);
+
+        if (!request) {
+            return res.status(404).json({
+                success: false,
+                message: `Request not found with ID: ${req.params.id}`
+            });
+        }
+
+        if (request.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only submit your own requests'
+            });
+        }
+
+        if (request.status !== RequestStatus.Draft) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot submit request with status: ${request.status}. Only draft requests can be submitted.`
+            });
+        }
+
+        request.status = RequestStatus.Submitted;
+        await request.save();
+
+        await request.populate('userId', 'name email role');
+        await request.populate('departmentId', 'name');
+
+        res.status(200).json({
+            success: true,
+            message: 'Request submitted successfully',
+            data: { request }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const cancelRequest = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const request = await ResourceRequest.findById(req.params.id);
+
+        if (!request) {
+            return res.status(404).json({
+                success: false,
+                message: `Request not found with ID: ${req.params.id}`
+            });
+        }
+
+        if (request.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only cancel your own requests'
+            });
+        }
+
+        const allowedStatuses = [RequestStatus.Draft, RequestStatus.Submitted, RequestStatus.UnderReview];
+        if (!allowedStatuses.includes(request.status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot cancel request with status: ${request.status}. Only draft, submitted, or under review requests can be cancelled.`
+            });
+        }
+
+        request.status = RequestStatus.Cancelled;
+        await request.save();
+
+        await request.populate('userId', 'name email role');
+        await request.populate('departmentId', 'name');
+
+        res.status(200).json({
+            success: true,
+            message: 'Request cancelled successfully',
+            data: { request }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getDepartmentRequests = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const filter: any = { departmentId: req.user.department };
+
+        if (req.query.status) {
+            filter.status = req.query.status;
+        }
+
+        const requests = await ResourceRequest.find(filter)
+            .populate('userId', 'name email role')
+            .populate('departmentId', 'name')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            message: 'Department requests retrieved successfully',
+            data: {
+                count: requests.length,
+                requests
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};

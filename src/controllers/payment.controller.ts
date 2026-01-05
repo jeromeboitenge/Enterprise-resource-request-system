@@ -135,3 +135,26 @@ export const getPayment = async (req: Request, res: Response, next: NextFunction
         next(error);
     }
 };
+
+export const getPendingPayments = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const requests = await ResourceRequest.find({ status: RequestStatus.Approved })
+            .populate('userId', 'name email role department')
+            .populate('departmentId', 'name')
+            .sort({ createdAt: -1 });
+
+        const totalEstimatedCost = requests.reduce((sum, req) => sum + req.estimatedCost, 0);
+
+        res.status(200).json({
+            success: true,
+            message: 'Pending payments retrieved successfully',
+            data: {
+                count: requests.length,
+                totalEstimatedCost,
+                requests
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};

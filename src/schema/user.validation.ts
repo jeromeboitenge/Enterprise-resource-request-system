@@ -27,13 +27,6 @@ export const createUserSchema = Joi.object({
     }),
     email: emailSchema,
     password: passwordSchema,
-    confirmPassword: Joi.string()
-        .valid(Joi.ref('password'))
-        .required()
-        .messages({
-            'any.only': 'Passwords do not match',
-            'any.required': 'Password confirmation is required'
-        }),
     role: Joi.string()
         .valid('employee', 'manager', 'departmenthead', 'finance', 'admin')
         .default('employee'),

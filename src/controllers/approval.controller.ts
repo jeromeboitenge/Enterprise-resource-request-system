@@ -127,3 +127,27 @@ export const getApprovalHistory = async (req: Request, res: Response, next: Next
         next(error);
     }
 };
+
+export const getPendingApprovals = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const filter: any = {
+            status: { $in: [RequestStatus.Submitted, RequestStatus.UnderReview] }
+        };
+
+        const requests = await ResourceRequest.find(filter)
+            .populate('userId', 'name email role department')
+            .populate('departmentId', 'name')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            message: 'Pending approvals retrieved successfully',
+            data: {
+                count: requests.length,
+                requests
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
