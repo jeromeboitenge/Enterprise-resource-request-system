@@ -33,23 +33,23 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
         }
 
         if (role === 'manager' || role === 'departmenthead') {
-            if (request.status !== RequestStatus.Submitted) {
+            if (request.status !== RequestStatus.Submitted && request.status !== RequestStatus.Draft) {
                 return res.status(400).json({
                     success: false,
-                    message: `Request has already been ${request.status}. You can only approve submitted requests.`
+                    message: `Request has already been ${request.status}. You can only approve draft or submitted requests.`
                 });
             }
         } else if (role === 'admin') {
             const isManagerless = !request.department.managerId;
             const allowedStatuses = isManagerless
-                ? [RequestStatus.Submitted, RequestStatus.ManagerApproved]
+                ? [RequestStatus.Submitted, RequestStatus.ManagerApproved, RequestStatus.Draft]
                 : [RequestStatus.ManagerApproved];
 
             if (!allowedStatuses.includes(request.status as any)) {
                 return res.status(400).json({
                     success: false,
                     message: isManagerless
-                        ? `Request status is ${request.status}. Admin acting as manager can approve submitted or manager-approved requests.`
+                        ? `Request status is ${request.status}. Admin acting as manager can approve draft, submitted or manager-approved requests.`
                         : `Request status is ${request.status}. Admin can only approve requests already approved by a manager.`
                 });
             }
@@ -73,7 +73,7 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
         let newStatus = RequestStatus.Approved;
         if (role === 'manager' || role === 'departmenthead') {
             newStatus = RequestStatus.ManagerApproved;
-        } else if (role === 'admin' && request.status === RequestStatus.Submitted) {
+        } else if (role === 'admin' && (request.status === RequestStatus.Submitted || request.status === RequestStatus.Draft)) {
             // Admin acting as manager
             newStatus = RequestStatus.ManagerApproved;
         }

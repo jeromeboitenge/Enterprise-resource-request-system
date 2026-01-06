@@ -277,17 +277,40 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
+        // Allowed statuses for ANY update
         const allowedStatuses = [RequestStatus.Draft, RequestStatus.Submitted, RequestStatus.Rejected];
         if (!allowedStatuses.includes(existingRequest.status as any)) {
             return res.status(400).json({
                 success: false,
-                message: `Cannot update request with status: ${existingRequest.status}. Only draft, submitted, or rejected requests can be updated.`
+                message: `Cannot update request with status: ${existingRequest.status}. Request is likely already approved or processing.`
             });
         }
 
-        const request = await prisma.request.update({
-            where: { id: req.params.id },
-            data: {
+        // Logic split:
+        // 1. If 'submitted': Only allow updating OPTIONAL fields (description).
+        // 2. If 'draft' or 'rejected': Allow updating ALL fields.
+
+        let dataToUpdate: any = {};
+
+        if (existingRequest.status === RequestStatus.Submitted) {
+            // Only allow optional fields
+            if (description !== undefined) dataToUpdate.description = description;
+
+            // Warn or silently ignore if user tried to update other fields?
+            // For clear feedback, let's just proceed with restricted data. 
+            // If the user sends title/quantity, they will just be ignored here.
+
+            // Optimization: If nothing to update, return early?
+            if (Object.keys(dataToUpdate).length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'For submitted requests, only the description (optional field) can be modified.'
+                });
+            }
+
+        } else {
+            // Draft or Rejected: Allow full updates
+            dataToUpdate = {
                 title,
                 resourceName,
                 resourceType,
@@ -295,7 +318,12 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
                 quantity,
                 estimatedCost,
                 priority
-            },
+            };
+        }
+
+        const request = await prisma.request.update({
+            where: { id: req.params.id },
+            data: dataToUpdate,
             include: {
                 user: { select: { name: true, email: true, role: true } },
                 department: { select: { name: true, code: true } }
@@ -332,11 +360,13 @@ export const deleteRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        const allowedStatuses = [RequestStatus.Draft, RequestStatus.Submitted];
+        // Allow deletion for Draft, Submitted, and Rejected
+        // Block for ManagerApproved and beyond
+        const allowedStatuses = [RequestStatus.Draft, RequestStatus.Submitted, RequestStatus.Rejected];
         if (!allowedStatuses.includes(existingRequest.status as any)) {
             return res.status(400).json({
                 success: false,
-                message: `Cannot delete request with status: ${existingRequest.status}. Only draft or submitted requests can be deleted.`
+                message: `Cannot delete request with status: ${existingRequest.status}. Request has likely already been approved.`
             });
         }
 

@@ -145,7 +145,7 @@ export const logSecurityEvent = (
     additionalData?: Record<string, any>
 ): void => {
     securityLogger.info(event, {
-        requestId: req.id,
+        requestId: (req as any).id,
         ip: req.ip || req.socket.remoteAddress,
         userAgent: req.get('user-agent'),
         userId: req.user?._id,
@@ -154,7 +154,7 @@ export const logSecurityEvent = (
 };
 
 export const createRequestLogger = (req: Request): winston.Logger => {
-    return logger.child({ requestId: req.id });
+    return logger.child({ requestId: (req as any).id });
 };
 
 export default logger;

@@ -1,5 +1,5 @@
 import express, { Router } from "express";
-import authRoutes from "./auth.routes";
+import authRoutes from "../auth/auth.routes";
 import departmentRoutes from "./department.routes";
 import requestRoutes from "./request.routes";
 import approvalRoutes from "./approval.routes";

@@ -5,8 +5,8 @@ import {
     getPayment,
     getPendingPayments
 } from '../controllers/payment.controller';
-import { authenticate } from '../middleware/auth.middleware';
-import { authorize } from '../middleware/authorize.middleware';
+import { authenticate } from '../auth/auth.middleware';
+import { authorize } from '../auth/authorize.middleware';
 import { validate } from '../middleware/validate';
 import { processPaymentSchema } from '../schema/payment.validation';
 import { Roles } from '../types/user.interface';

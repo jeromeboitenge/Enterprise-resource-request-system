@@ -9,8 +9,8 @@ import {
     getProfile,
     updateProfile,
     changePassword
-} from '../controllers/auth.controller';
-import { authenticate } from '../middleware/auth.middleware';
+} from './auth.controller';
+import { authenticate } from './auth.middleware';
 import { validate } from '../middleware/validate';
 import { createUserSchema, loginSchema, changePasswordSchema, resetPasswordWithEmailSchema } from '../schema/user.validation';
 import { authLimiter, strictLimiter } from '../middleware/rate-limiter.middleware';

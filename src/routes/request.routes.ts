@@ -10,10 +10,10 @@ import {
     cancelRequest,
     getDepartmentRequests
 } from '../controllers/request.controller';
-import { authenticate } from '../middleware/auth.middleware';
-import { authorize } from '../middleware/authorize.middleware';
+import { authenticate } from '../auth/auth.middleware';
+import { authorize } from '../auth/authorize.middleware';
 import { validate } from '../middleware/validate';
-import { createRequestSchema } from '../schema/request.validation';
+import { createRequestSchema, updateRequestSchema } from '../schema/request.validation';
 import { Roles } from '../types/user.interface';
 
 const router = Router();
@@ -40,7 +40,7 @@ router.get(
 router.get('/:id', getRequest);
 
 
-router.put('/:id', validate(createRequestSchema), updateRequest);
+router.put('/:id', validate(updateRequestSchema), updateRequest);
 
 
 router.delete('/:id', deleteRequest);

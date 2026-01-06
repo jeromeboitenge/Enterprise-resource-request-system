@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth.middleware';
-import { authorize } from '../middleware/authorize.middleware';
+import { authenticate } from '../auth/auth.middleware';
+import { authorize } from '../auth/authorize.middleware';
 import { validate } from '../middleware/validate';
 import {
     getAllUsers,
