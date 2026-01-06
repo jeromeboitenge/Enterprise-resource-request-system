@@ -4,7 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import "dotenv/config";
 
-import { config } from "./config"; // removed databaseConnection
+import { config } from "./config";
 import { validateEnv } from "./config/env.validator";
 import { mainRouter } from "./routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
@@ -12,7 +12,7 @@ import { apiLimiter } from "./middleware/rate-limiter.middleware";
 import { sanitizeInput, customSanitize } from "./middleware/sanitize.middleware";
 import { requestIdMiddleware } from "./middleware/request-id.middleware";
 import logger from "./utils/logger";
-import prisma from './lib/prisma'; // Import prisma client
+import prisma from './lib/prisma';
 
 try {
     validateEnv();
@@ -45,7 +45,7 @@ const corsOrigins = process.env.CORS_ORIGIN?.split(',') || ['*'];
 app.use(
     cors({
         origin: corsOrigins.includes('*') ? '*' : corsOrigins,
-        credentials: true,  // Allow cookies and authorization headers
+        credentials: true,
     })
 );
 
@@ -82,7 +82,7 @@ app.use(errorHandler);
 
 const startServer = async () => {
     try {
-        // Verify Database Connection
+
         await prisma.$connect();
         logger.info('✅ Connected to PostgreSQL via Prisma');
 

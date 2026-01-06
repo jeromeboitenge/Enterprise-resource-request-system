@@ -32,7 +32,7 @@ export const REQUEST_VALIDATION = {
     },
     ESTIMATED_COST: {
         MIN: 0,
-        MAX: 999999999.99, // ~1 billion
+        MAX: 999999999.99,
     },
     QUANTITY: {
         MIN: 1,
@@ -50,7 +50,7 @@ export const APPROVAL_VALIDATION = {
 export const PAYMENT_VALIDATION = {
     AMOUNT: {
         MIN: 0.01,
-        MAX: 999999999.99, // ~1 billion
+        MAX: 999999999.99,
     },
     TRANSACTION_ID: {
         MIN_LENGTH: 5,

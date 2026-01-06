@@ -18,7 +18,7 @@ const envSchema = Joi.object({
 
     RATE_LIMIT_WINDOW_MS: Joi.number().default(15 * 60 * 1000),
     RATE_LIMIT_MAX_REQUESTS: Joi.number().default(100)
-}).unknown(true); // Allow other environment variables
+}).unknown(true);
 
 export const validateEnv = (): void => {
     const { error, value } = envSchema.validate(process.env, {

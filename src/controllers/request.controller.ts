@@ -299,7 +299,7 @@ export const submitRequest = async (req: Request, res: Response, next: NextFunct
             data: { status: RequestStatus.Submitted },
             include: {
                 user: { select: { name: true, email: true, role: true } },
-                department: { select: { name: true } } // Assuming department name only based on previous Populate
+                department: { select: { name: true } }
             }
         });
 
@@ -363,52 +363,9 @@ export const cancelRequest = async (req: Request, res: Response, next: NextFunct
 export const getDepartmentRequests = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const filter: any = {};
-        // Assuming Department Head's user.department is their department ID or Name?
-        // In Auth Controller registration, we store department as string.
-        // In Schema, User department is String (optional).
-        // In Request, departmentId is String (FK to Department).
 
-        // However, Prisma schema defines User.department as String? (db.VarChar).
-        // It does NOT link to Department model directly in User model (except via managedDepartments relation).
-        // BUT Request model links to Department via departmentId.
-
-        // If req.user.department is a department NAME (as per previous logic 'IT' default), filtering by departmentId might fail if it expects ID.
-        // Mongoose logic was: filter.departmentId = req.user.department.
-        // This implies req.user.department was storing the ID.
-        // Let's assume req.user.department is the ID or Name consistent with usage.
-
-        // Re-checking Register:
-        // const userDepartment = department || 'IT';
-        // const user = ... department: userDepartment
-
-        // If 'IT' is stored, then it's a Name.
-        // But Request.departmentId is FK to Department(id).
-        // This is a discrepancy from previous code or Mongoose loose typing.
-        // If User.department stores "IT", and Request.departmentId stores UUID, then `req.user.department` cannot be used as `departmentId` filter directly unless they match.
-
-        // Given constraint of minimizing scope creep but fixing errors:
-        // I should probably query the Department table by Name to get ID if req.user.department is a Name.
-
-        let deptId = null;
-        // Check if req.user.department looks like a UUID or Name.
-        // If it's a name, find the department first.
-
-        // For now, let's just implement what was there but using Prism syntax.
-        // If logic was broken before, it might stay broken or I fix it if obvious.
-
-        /* 
-           Fix: If User.department is meant to be ID, then Register should resolve Name to ID.
-           But Register logic just saving string.
-           
-           Let's assume for now we filter by User's department if it matches Request.userId -> User.department?
-           No, getDepartmentRequests intends to get all requests for the department the HEAD manages.
-           
-           Let's Assume req.user.department holds the Department ID for now to be compatible with Request.departmentId.
-        */
 
         if (req.user.department) {
-            // In a real fix, we'd lookup department. But let's trust the logic passed down unless it breaks.
-            // Wait, previous code: const filter: any = { departmentId: req.user.department };
             filter.departmentId = req.user.department;
         }
 

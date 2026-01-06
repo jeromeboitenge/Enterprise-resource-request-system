@@ -10,7 +10,7 @@ async function verifyDepartmentUpdate() {
     const newDeptName = `DeptNew_${timestamp}`;
 
     try {
-        // 1. Create a department
+        console.log('1. Creating department...');
         console.log('1. Creating department...');
         const dept = await prisma.department.create({
             data: {
@@ -20,13 +20,11 @@ async function verifyDepartmentUpdate() {
         });
         console.log('Department created:', dept.id);
 
-        // 2. Simulate Controller Update Logic (Optional Name)
-        // We verify the logic we just implemented: building updateData based on inputs.
+
 
         console.log('2. Updating Description ONLY (Name Optional Check)...');
 
-        // Simulation of controller input:
-        const reqBody1 = { description: 'Updated Description' }; // name is undefined
+        const reqBody1 = { description: 'Updated Description' };
 
         const updateData1: any = {};
         if ((reqBody1 as any).name) updateData1.name = (reqBody1 as any).name;
@@ -41,7 +39,7 @@ async function verifyDepartmentUpdate() {
         if (updatedDept1.description !== 'Updated Description') throw new Error('Description failed to update');
         console.log('Success: Name preserved, description updated.');
 
-        // 3. Update Name
+        console.log('3. Updating Name...');
         console.log('3. Updating Name...');
         const reqBody2 = { name: newDeptName };
 
@@ -62,7 +60,7 @@ async function verifyDepartmentUpdate() {
         console.error('FAILED:', error);
         process.exit(1);
     } finally {
-        // Cleanup starts with 'DeptTest_' or 'DeptNew_'
+
         const cleanup = await prisma.department.findMany({
             where: {
                 OR: [

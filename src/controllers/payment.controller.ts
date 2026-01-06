@@ -40,8 +40,7 @@ export const processPayment = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        // Decimal handling in Prisma/JS might need casting or usage of Decimal.js passed from Prisma
-        // request.estimatedCost is Decimal.
+
         if (Number(amountPaid) > Number(request.estimatedCost)) {
             return res.status(400).json({
                 success: false,
@@ -53,7 +52,7 @@ export const processPayment = async (req: Request, res: Response, next: NextFunc
             data: {
                 requestId,
                 financeOfficerId: req.user.id,
-                amountPaid: Number(amountPaid), // Ensure standard number or Decimal compatible
+                amountPaid: Number(amountPaid),
                 paymentMethod
             }
         });

@@ -11,7 +11,7 @@ export const errorHandler = (
     let message = err.message || 'Something went wrong';
     let errors = err.errors;
 
-    // Prisma Unique Constraint Violation
+
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
         if (err.code === 'P2002') {
             statusCode = 409;

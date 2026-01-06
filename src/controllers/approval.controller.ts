@@ -157,7 +157,7 @@ export const getPendingApprovals = async (req: Request, res: Response, next: Nex
     try {
         const requests = await prisma.request.findMany({
             where: {
-                status: { in: [RequestStatus.Submitted, RequestStatus.UnderReview] as any } // Cast as any if TS complains about string/enum mismatch
+                status: { in: [RequestStatus.Submitted, RequestStatus.UnderReview] as any }
             },
             include: {
                 user: { select: { name: true, email: true, role: true, department: true } },

@@ -5,7 +5,7 @@ import prisma from '../lib/prisma';
 import { generateOTP } from '../utils/otp.utils';
 import { sendEmail } from '../utils/email.service';
 import { getOtpTemplate } from '../utils/emailTemplates';
-// import User from '../model/user'; // Removed Mongoose model
+
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -24,7 +24,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         const userDepartment = department || 'IT';
 
         const otp = generateOTP();
-        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
         const user = await prisma.user.create({
             data: {
@@ -94,13 +94,10 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             });
         }
 
-        // To track lastLogin we might need to add that field to schema or just ignore for now if not in schema.
-        // The schema created has 'createdAt' and 'updatedAt'. Let's check schema.
-        // Schema doesn't have lastLogin. It has failedLoginAttempts.
-        // We can ignore updating lastLogin for now unless we add it to schema.
+
 
         const otp = generateOTP();
-        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
         await prisma.user.update({
             where: { id: user.id },
@@ -152,7 +149,7 @@ export const verifyLogin = async (req: Request, res: Response, next: NextFunctio
             });
         }
 
-        // Clear OTP
+
         await prisma.user.update({
             where: { id: user.id },
             data: {
@@ -202,7 +199,7 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
             });
         }
 
-        // Exclude password manually since Prisma doesn't have built-in exclusion yet like Mongoose select
+
         const { password, ...userWithoutPassword } = user;
 
         res.status(200).json({
@@ -275,10 +272,10 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        // If OTP is not provided, send it and return
+
         if (!otp) {
             const newOtp = generateOTP();
-            const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+            const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
             await prisma.user.update({
                 where: { id: user.id },
@@ -295,14 +292,14 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
                 getOtpTemplate(newOtp, 'password_reset')
             );
 
-            return res.status(202).json({ // 202 Accepted
+            return res.status(202).json({
                 success: true,
                 message: 'OTP sent to your email. Please include the OTP to confirm password change.',
                 data: { requireOtp: true }
             });
         }
 
-        // Verify OTP
+
         if (user.otpCode !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
             return res.status(400).json({
                 success: false,
@@ -310,7 +307,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        // Change Password and Clear OTP
+
         const hashedPassword = await bcrypt.hash(newPassword, 12);
 
         await prisma.user.update({
@@ -346,7 +343,7 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
         }
 
         const otp = generateOTP();
-        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
         await prisma.user.update({
             where: { id: user.id },
@@ -393,7 +390,7 @@ export const verifyResetOtp = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        // Mark OTP as verified so they can reset password without sending it again
+
         await prisma.user.update({
             where: { id: user.id },
             data: { otpVerified: true }
@@ -421,7 +418,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        // Check if the user has verified the OTP
+
         if (!user.otpVerified) {
             return res.status(400).json({
                 success: false,
@@ -429,7 +426,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        // Also check if OTP is expired, as verification shouldn't last forever
+
         if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
             return res.status(400).json({
                 success: false,

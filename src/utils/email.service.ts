@@ -15,7 +15,7 @@ export const sendEmail = async (to: string, subject: string, text: string, html?
             from: process.env.EMAIL_USER,
             to,
             subject,
-            text, // Fallback for clients that don't render HTML
+            text,
             html
         };
 

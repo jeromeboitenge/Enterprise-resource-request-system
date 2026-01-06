@@ -52,7 +52,7 @@ export const buildPaginationOptions = (
     limit: number = 10
 ): { skip: number; limit: number } => {
     const validPage = Math.max(1, page);
-    const validLimit = Math.min(Math.max(1, limit), 100); // Max 100 items per page
+    const validLimit = Math.min(Math.max(1, limit), 100);
 
     return {
         skip: (validPage - 1) * validLimit,

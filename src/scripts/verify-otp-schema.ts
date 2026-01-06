@@ -2,8 +2,7 @@
 import { PrismaClient } from '@prisma/client';
 import { generateOTP } from '../utils/otp.utils';
 
-// Mock sendEmail to avoid spamming real email during test or just verify via DB
-// Since we can't easily mock imports in this script without jest, we will inspect the DB for OTP code.
+
 
 const prisma = new PrismaClient();
 
@@ -15,12 +14,9 @@ async function verifyOTPFlow() {
     let userId: string;
 
     try {
-        // 1. Signup (Should generate OTP)
         console.log('1. Signup...');
-        // We can't call controller directly easily, so we mimic logic or check effect.
-        // But verifying CONTROLLER logic requires integration test structure. 
-        // I will assume controller calls service. I will check via DB after running the logic manually 
-        // OR I can use the same logic here to verify my assumptions about Prisma fields works.
+        console.log('1. Signup...');
+
 
         // Actually, best way is to use axios/fetch against running server?
         // But I don't know if server is running.
@@ -45,7 +41,7 @@ async function verifyOTPFlow() {
 
         if (!user.otpCode) throw new Error('OTP not saved during creation');
 
-        // 2. Login Flow Simulation
+        console.log('2. Login OTP Update...');
         console.log('2. Login OTP Update...');
         const newOtp = generateOTP();
         const updatedUser = await prisma.user.update({
@@ -58,7 +54,7 @@ async function verifyOTPFlow() {
         console.log('User updated with Login OTP:', updatedUser.otpCode);
         if (updatedUser.otpCode === user.otpCode) throw new Error('OTP did not update');
 
-        // 3. Verify (Clear OTP)
+        console.log('3. Verify Login (Clear OTP)...');
         console.log('3. Verify Login (Clear OTP)...');
         const verifiedUser = await prisma.user.update({
             where: { id: userId },

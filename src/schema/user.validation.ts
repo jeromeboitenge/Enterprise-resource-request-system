@@ -80,7 +80,7 @@ export const resetPasswordWithEmailSchema = Joi.object({
     newPassword: passwordSchema,
     confirmPassword: Joi.string()
         .valid(Joi.ref('newPassword'))
-        .optional() // Optional for now to maintain backward compatibility with current testing, or can be required. User didn't ask for it.
+        .optional()
         .messages({
             'any.only': 'Passwords do not match'
         })

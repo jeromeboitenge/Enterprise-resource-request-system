@@ -83,7 +83,7 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
             });
         }
 
-        // Check and create department if it doesn't exist
+
         if (department) {
             const existingDept = await prisma.department.findUnique({
                 where: { name: department }
@@ -138,7 +138,7 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
             }
         }
 
-        // Check if user exists before update to return 404
+
         const userExists = await prisma.user.findUnique({ where: { id: req.params.id } });
         if (!userExists) {
             return res.status(404).json({
@@ -147,7 +147,7 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
             });
         }
 
-        // Check and create department if it doesn't exist and is being updated
+
         if (department) {
             const existingDept = await prisma.department.findUnique({
                 where: { name: department }
@@ -189,7 +189,7 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
 
 export const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Check first
+
         const userExists = await prisma.user.findUnique({ where: { id: req.params.id } });
 
         if (!userExists) {

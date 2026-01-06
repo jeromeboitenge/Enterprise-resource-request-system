@@ -6,11 +6,11 @@ import { sendEmail } from '../utils/email.service';
 async function testEmail() {
     console.log('Testing Email Sending...');
     console.log('User:', process.env.EMAIL_USER);
-    // Don't log pass
+
 
     try {
         await sendEmail(
-            process.env.EMAIL_USER as string, // Send to self
+            process.env.EMAIL_USER as string,
             'Test Email from R2P',
             'This is a test email to verify credentials.'
         );
