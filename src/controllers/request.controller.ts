@@ -33,11 +33,17 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
                 quantity,
                 estimatedCost,
                 priority,
-                status: RequestStatus.Draft
+                status: RequestStatus.Submitted
             },
             include: {
                 user: { select: { name: true, email: true, role: true } },
-                department: { select: { name: true, code: true } }
+                department: {
+                    select: {
+                        name: true,
+                        code: true,
+                        manager: { select: { id: true, name: true, email: true } }
+                    }
+                }
             }
         });
 
@@ -67,7 +73,13 @@ export const getMyRequests = async (req: Request, res: Response, next: NextFunct
                 where: filter,
                 include: {
                     user: { select: { name: true, email: true, role: true } },
-                    department: { select: { name: true, code: true } }
+                    department: {
+                        select: {
+                            name: true,
+                            code: true,
+                            manager: { select: { id: true, name: true, email: true } }
+                        }
+                    }
                 },
                 orderBy: { createdAt: 'desc' },
                 skip,
@@ -116,7 +128,13 @@ export const getAllRequests = async (req: Request, res: Response, next: NextFunc
                 where: filter,
                 include: {
                     user: { select: { name: true, email: true, role: true, department: true } },
-                    department: { select: { name: true, code: true } }
+                    department: {
+                        select: {
+                            name: true,
+                            code: true,
+                            manager: { select: { id: true, name: true, email: true } }
+                        }
+                    }
                 },
                 orderBy: { createdAt: 'desc' },
                 skip,
@@ -140,7 +158,13 @@ export const getRequest = async (req: Request, res: Response, next: NextFunction
             where: { id: req.params.id },
             include: {
                 user: { select: { name: true, email: true, role: true, department: true } },
-                department: { select: { name: true, code: true } }
+                department: {
+                    select: {
+                        name: true,
+                        code: true,
+                        manager: { select: { id: true, name: true, email: true } }
+                    }
+                }
             }
         });
 
