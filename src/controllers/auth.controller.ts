@@ -47,7 +47,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
             email,
             'Your Account Verification OTP',
             `Welcome to R2P! Your OTP code is: ${otp}`,
-            generateEmailHtml('Account Verification', `Welcome to R2P! Your OTP code is: <strong>${otp}</strong>. It expires in 10 minutes.`)
+            generateEmailHtml('Account Verification', `Welcome to R2P! Please use the verification code below to activate your account:<br><br><div class="highlight-box">${otp}</div><br>This code will expire in 10 minutes.`)
         );
 
         res.status(201).json({
@@ -111,7 +111,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             email,
             'Login Verification Code',
             `Your login OTP code is: ${otp}`,
-            generateEmailHtml('Login Verification', `Your login OTP code is: <strong>${otp}</strong>. It expires in 10 minutes.`)
+            generateEmailHtml('Login Verification', `Please use the code below to complete your login:<br><br><div class="highlight-box">${otp}</div><br>This code will expire in 10 minutes.`)
         );
 
         res.status(200).json({
@@ -295,7 +295,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
                 user.email,
                 'Password Change Verification',
                 `Your OTP for password change is: ${newOtp}`,
-                generateEmailHtml('Password Change', `Your OTP for password change is: <strong>${newOtp}</strong>. It expires in 10 minutes.`)
+                generateEmailHtml('Password Change', `Please use the code below to verify your password change:<br><br><div class="highlight-box">${newOtp}</div><br>This code will expire in 10 minutes.`)
             );
 
             return res.status(202).json({
@@ -364,7 +364,7 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
             email,
             'Password Reset Request',
             `Your OTP for password reset is: ${otp}`,
-            generateEmailHtml('Password Reset', `Your OTP for password reset is: <strong>${otp}</strong>. It expires in 10 minutes.`)
+            generateEmailHtml('Password Reset', `You requested a password reset. Please use the code below:<br><br><div class="highlight-box">${otp}</div><br>This code will expire in 10 minutes.`)
         );
 
         res.status(200).json({

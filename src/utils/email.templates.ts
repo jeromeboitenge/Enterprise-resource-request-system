@@ -46,7 +46,21 @@ export const generateEmailHtml = (title: string, message: string, ctaLink?: stri
             margin-top: 0;
             margin-bottom: 20px;
             border-bottom: 2px solid #e2e8f0;
+            border-bottom: 2px solid #e2e8f0;
             padding-bottom: 10px;
+        }
+        .highlight-box {
+            background-color: #ebf8ff;
+            border: 2px dashed #3182ce;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 30px 0;
+            font-size: 32px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            letter-spacing: 5px;
+            color: #2c5282;
         }
         .message {
             font-size: 16px;
