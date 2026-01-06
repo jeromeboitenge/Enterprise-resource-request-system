@@ -155,16 +155,33 @@ export const getApprovalHistory = async (req: Request, res: Response, next: Next
 
 export const getPendingApprovals = async (req: Request, res: Response, next: NextFunction) => {
     try {
+        const { role, departmentId } = req.user;
+        const filter: any = {
+            status: { in: [RequestStatus.Submitted, RequestStatus.UnderReview] as any }
+        };
+
+        if (role === 'manager' || role === 'departmenthead') {
+            if (departmentId) {
+                filter.departmentId = departmentId;
+            }
+        }
+
         const requests = await prisma.request.findMany({
-            where: {
-                status: { in: [RequestStatus.Submitted, RequestStatus.UnderReview] as any }
-            },
+            where: filter,
             include: {
                 user: { select: { name: true, email: true, role: true, department: true } },
                 department: { select: { name: true } }
             },
             orderBy: { createdAt: 'desc' }
         });
+
+        const { role, departmentId } = req.user;
+        if (role === 'manager' || role === 'departmenthead') {
+            // Filter in memory or query? Query is better but easier to filter results if complex.
+            // Actually let's add it to the query.
+            // We can modify the `where` clause before query. 
+            // Re-writing the query logic below to be dynamic.
+        }
 
         res.status(200).json({
             success: true,

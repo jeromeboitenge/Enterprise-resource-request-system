@@ -88,6 +88,17 @@ export const getMyRequests = async (req: Request, res: Response, next: NextFunct
 export const getAllRequests = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const filter: any = {};
+        const { role, departmentId } = req.user;
+
+        if (role === 'manager' || role === 'departmenthead') {
+            if (!departmentId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Manager/Head has no assigned department.'
+                });
+            }
+            filter.departmentId = departmentId;
+        }
 
         if (req.query.status) {
             filter.status = req.query.status as string;
