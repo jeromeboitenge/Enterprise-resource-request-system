@@ -15,6 +15,14 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             }
         });
 
+        const { role, departmentId } = req.user;
+        if ((role === 'manager' || role === 'departmenthead') && request?.departmentId !== departmentId) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only approve requests from your own department'
+            });
+        }
+
         if (!request) {
             return res.status(404).json({
                 success: false,
@@ -73,6 +81,14 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
                 department: { select: { name: true } }
             }
         });
+
+        const { role, departmentId } = req.user;
+        if ((role === 'manager' || role === 'departmenthead') && request?.departmentId !== departmentId) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only reject requests from your own department'
+            });
+        }
 
         if (!request) {
             return res.status(404).json({
@@ -175,13 +191,7 @@ export const getPendingApprovals = async (req: Request, res: Response, next: Nex
             orderBy: { createdAt: 'desc' }
         });
 
-        const { role, departmentId } = req.user;
-        if (role === 'manager' || role === 'departmenthead') {
-            // Filter in memory or query? Query is better but easier to filter results if complex.
-            // Actually let's add it to the query.
-            // We can modify the `where` clause before query. 
-            // Re-writing the query logic below to be dynamic.
-        }
+
 
         res.status(200).json({
             success: true,
