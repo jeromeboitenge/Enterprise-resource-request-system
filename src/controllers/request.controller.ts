@@ -277,11 +277,11 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        const allowedStatuses = [RequestStatus.Draft, RequestStatus.Submitted];
+        const allowedStatuses = [RequestStatus.Draft, RequestStatus.Submitted, RequestStatus.Rejected];
         if (!allowedStatuses.includes(existingRequest.status as any)) {
             return res.status(400).json({
                 success: false,
-                message: `Cannot update request with status: ${existingRequest.status}. Only draft or submitted requests can be updated.`
+                message: `Cannot update request with status: ${existingRequest.status}. Only draft, submitted, or rejected requests can be updated.`
             });
         }
 
@@ -374,10 +374,11 @@ export const submitRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        if (existingRequest.status !== RequestStatus.Draft) {
+        const allowedStatuses = [RequestStatus.Draft, RequestStatus.Rejected];
+        if (!allowedStatuses.includes(existingRequest.status as any)) {
             return res.status(400).json({
                 success: false,
-                message: `Cannot submit request with status: ${existingRequest.status}. Only draft requests can be submitted.`
+                message: `Cannot submit request with status: ${existingRequest.status}. Only draft or rejected requests can be submitted.`
             });
         }
 

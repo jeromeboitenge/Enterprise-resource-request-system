@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { generateOTP } from '../utils/otp.utils';
 import { sendEmail } from '../utils/email.service';
-import { getOtpTemplate } from '../utils/emailTemplates';
+import { generateEmailHtml } from '../utils/email.templates';
 
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
@@ -47,7 +47,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
             email,
             'Your Account Verification OTP',
             `Welcome to R2P! Your OTP code is: ${otp}`,
-            getOtpTemplate(otp, 'signup')
+            generateEmailHtml('Account Verification', `Welcome to R2P! Your OTP code is: <strong>${otp}</strong>. It expires in 10 minutes.`)
         );
 
         res.status(201).json({
@@ -111,7 +111,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             email,
             'Login Verification Code',
             `Your login OTP code is: ${otp}`,
-            getOtpTemplate(otp, 'login')
+            generateEmailHtml('Login Verification', `Your login OTP code is: <strong>${otp}</strong>. It expires in 10 minutes.`)
         );
 
         res.status(200).json({
@@ -295,7 +295,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
                 user.email,
                 'Password Change Verification',
                 `Your OTP for password change is: ${newOtp}`,
-                getOtpTemplate(newOtp, 'password_reset')
+                generateEmailHtml('Password Change', `Your OTP for password change is: <strong>${newOtp}</strong>. It expires in 10 minutes.`)
             );
 
             return res.status(202).json({
@@ -364,7 +364,7 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
             email,
             'Password Reset Request',
             `Your OTP for password reset is: ${otp}`,
-            getOtpTemplate(otp, 'password_reset')
+            generateEmailHtml('Password Reset', `Your OTP for password reset is: <strong>${otp}</strong>. It expires in 10 minutes.`)
         );
 
         res.status(200).json({

@@ -2,7 +2,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import { sendEmail } from '../utils/email.service';
-import { getOtpTemplate } from '../utils/emailTemplates';
+import { generateEmailHtml } from '../utils/email.templates';
 
 async function testResetEmail() {
     console.log('Testing Password Reset Email...');
@@ -14,7 +14,7 @@ async function testResetEmail() {
             email as string,
             'Password Reset Verification Test',
             `OTP: ${otp}`,
-            getOtpTemplate(otp, 'password_reset')
+            generateEmailHtml('Password Reset', `Your OTP is <strong>${otp}</strong>`)
         );
         console.log('Reset Password Email sent successfully!');
     } catch (error) {

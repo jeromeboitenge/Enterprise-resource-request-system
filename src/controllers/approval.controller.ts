@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { RequestStatus } from '../types/request.interface';
+import { sendEmail } from '../utils/email.service';
+import { generateEmailHtml } from '../utils/email.templates';
 
 export const approveRequest = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -86,6 +88,19 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             include: { approver: { select: { name: true, email: true, role: true } } }
         });
 
+        // Send email notification
+        if (request.user?.email) {
+            const subject = `Request Approved: ${request.title}`;
+            const text = `Your request "${request.title}" has been approved to status "${newStatus}".\n\nApprover Comment: ${comment || 'No comment provided.'}`;
+            const html = generateEmailHtml(
+                'Request Approved',
+                `Your request "<strong>${request.title}</strong>" has been approved to status "<strong>${newStatus}</strong>".<br><br><strong>Approver Comment:</strong> ${comment || 'No comment provided.'}`,
+                `http://localhost:3000/requests/${requestId}`,
+                'View Request'
+            );
+            await sendEmail(request.user.email, subject, text, html).catch(err => console.error('Failed to send email:', err));
+        }
+
         res.status(200).json({
             success: true,
             message: 'Request approved successfully',
@@ -153,6 +168,19 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
             where: { id: approval.id },
             include: { approver: { select: { name: true, email: true, role: true } } }
         });
+
+        // Send email notification
+        if (request.user?.email) {
+            const subject = `Request Rejected: ${request.title}`;
+            const text = `Your request "${request.title}" has been rejected.\n\nRejection Comment: ${comment || 'No comment provided.'}`;
+            const html = generateEmailHtml(
+                'Request Rejected',
+                `Your request "<strong>${request.title}</strong>" has been rejected.<br><br><strong>Rejection Comment:</strong> ${comment || 'No comment provided.'}`,
+                `http://localhost:3000/requests/${requestId}`,
+                'View Request'
+            );
+            await sendEmail(request.user.email, subject, text, html).catch(err => console.error('Failed to send email:', err));
+        }
 
         res.status(200).json({
             success: true,
