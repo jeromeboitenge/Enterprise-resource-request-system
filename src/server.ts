@@ -17,7 +17,7 @@ import prisma from './lib/prisma';
 try {
     validateEnv();
 } catch (error) {
-    console.error('❌ Environment validation failed:', error);
+    console.error(' Environment validation failed:', error);
     process.exit(1);
 }
 

@@ -11,22 +11,22 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             where: { id: requestId },
             include: {
                 user: { select: { name: true, email: true } },
-                department: { select: { name: true } }
+                department: { select: { name: true, managerId: true } }
             }
         });
-
-        const { role, departmentId } = req.user;
-        if ((role === 'manager' || role === 'departmenthead') && request?.departmentId !== departmentId) {
-            return res.status(403).json({
-                success: false,
-                message: 'You can only approve requests from your own department'
-            });
-        }
 
         if (!request) {
             return res.status(404).json({
                 success: false,
                 message: 'Request not found'
+            });
+        }
+
+        const { role, departmentId } = req.user;
+        if ((role === 'manager' || role === 'departmenthead') && request.departmentId !== departmentId) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only approve requests from your own department'
             });
         }
 
@@ -38,10 +38,17 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
                 });
             }
         } else if (role === 'admin') {
-            if (request.status !== RequestStatus.ManagerApproved) {
+            const isManagerless = !request.department.managerId;
+            const allowedStatuses = isManagerless
+                ? [RequestStatus.Submitted, RequestStatus.ManagerApproved]
+                : [RequestStatus.ManagerApproved];
+
+            if (!allowedStatuses.includes(request.status as any)) {
                 return res.status(400).json({
                     success: false,
-                    message: `Request status is ${request.status}. Admin can only approve requests already approved by a manager.`
+                    message: isManagerless
+                        ? `Request status is ${request.status}. Admin acting as manager can approve submitted or manager-approved requests.`
+                        : `Request status is ${request.status}. Admin can only approve requests already approved by a manager.`
                 });
             }
         } else {
@@ -63,6 +70,9 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
 
         let newStatus = RequestStatus.Approved;
         if (role === 'manager' || role === 'departmenthead') {
+            newStatus = RequestStatus.ManagerApproved;
+        } else if (role === 'admin' && request.status === RequestStatus.Submitted) {
+            // Admin acting as manager
             newStatus = RequestStatus.ManagerApproved;
         }
 
@@ -202,7 +212,13 @@ export const getPendingApprovals = async (req: Request, res: Response, next: Nex
             };
         } else if (role === 'admin') {
             filter = {
-                status: RequestStatus.ManagerApproved
+                OR: [
+                    { status: RequestStatus.ManagerApproved },
+                    {
+                        status: RequestStatus.Submitted,
+                        department: { managerId: null }
+                    }
+                ]
             };
         } else {
             // Fallback or other roles? Maybe finance sees Approved?
@@ -214,7 +230,7 @@ export const getPendingApprovals = async (req: Request, res: Response, next: Nex
             where: filter,
             include: {
                 user: { select: { name: true, email: true, role: true, department: true } },
-                department: { select: { name: true } }
+                department: { select: { name: true, managerId: true } }
             },
             orderBy: { createdAt: 'desc' }
         });
