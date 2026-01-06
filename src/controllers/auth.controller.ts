@@ -200,7 +200,13 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
         }
 
 
-        const { password, ...userWithoutPassword } = user;
+        const {
+            password,
+            otpVerified,
+            otpCode,
+            otpExpiresAt,
+            ...userWithoutPassword
+        } = user;
 
         res.status(200).json({
             success: true,

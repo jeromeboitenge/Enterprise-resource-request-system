@@ -41,7 +41,7 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
                     select: {
                         name: true,
                         code: true,
-                        manager: { select: { id: true, name: true, email: true } }
+                        manager: { select: { name: true } }
                     }
                 }
             }
@@ -77,7 +77,7 @@ export const getMyRequests = async (req: Request, res: Response, next: NextFunct
                         select: {
                             name: true,
                             code: true,
-                            manager: { select: { id: true, name: true, email: true } }
+                            manager: { select: { name: true } }
                         }
                     }
                 },
@@ -132,7 +132,7 @@ export const getAllRequests = async (req: Request, res: Response, next: NextFunc
                         select: {
                             name: true,
                             code: true,
-                            manager: { select: { id: true, name: true, email: true } }
+                            manager: { select: { name: true } }
                         }
                     }
                 },
@@ -162,7 +162,7 @@ export const getRequest = async (req: Request, res: Response, next: NextFunction
                     select: {
                         name: true,
                         code: true,
-                        manager: { select: { id: true, name: true, email: true } }
+                        manager: { select: { name: true } }
                     }
                 }
             }
