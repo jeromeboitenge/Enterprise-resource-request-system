@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log('🌱 Starting database seeding...');
+    console.log(' Starting database seeding...');
 
     try {
         // Clean existing data
@@ -16,7 +16,7 @@ async function main() {
         await prisma.user.deleteMany();
         await prisma.department.deleteMany();
 
-        console.log('✅ Cleared existing data');
+        console.log(' Cleared existing data');
 
         // Create Departments
         const departmentsData = [
@@ -35,19 +35,6 @@ async function main() {
             });
         }
         console.log('✅ Created departments');
-
-        // Helper to get dept name - simplified for seeding since we just created them
-        // But since IDs are auto-generated/uuid, we can't hardcode them easily without fetching.
-        // However, the User model takes `department` as a String (name) based on my memory of the schema and previous controller code.
-        // Let me double check validation/schema.
-        // user.validation.ts and users.schema.ts are old.
-        // prisma/schema.prisma: `department String`. Yes, it's just the name string, not a relation ID to Department model strictly enforcing FK on User table (unless I changed it).
-        // Wait, let's allow myself to verify `prisma/schema.prisma` quickly if I am unsure about the User -> Department relation.
-        // In `schema.prisma` I wrote:
-        // model User { ... department String ... }
-        // model Department { ... name String @unique ... }
-        // There is NO foreign key relation defined in Prisma schema between User and Department (it was loose in Mongoose too).
-        // So passing string 'IT' is fine.
 
         const hashedPassword = await bcrypt.hash('SecureP@ss123', 12);
 

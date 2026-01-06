@@ -23,7 +23,6 @@ model User {
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  // Relations
   department         Department?    @relation(fields: [departmentId], references: [id])
   managedDepartments Department[]   @relation("DepartmentManager")
   requests           Request[]
@@ -43,7 +42,6 @@ model Department {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
 
-  // Relations
   manager  User?     @relation("DepartmentManager", fields: [managerId], references: [id], onDelete: SetNull)
   users    User[]
   requests Request[]
@@ -66,7 +64,6 @@ model Request {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
 
-  // Relations
   user       User       @relation(fields: [userId], references: [id])
   department Department @relation(fields: [departmentId], references: [id])
   approvals  Approval[]
@@ -83,7 +80,6 @@ model Approval {
   comment      String?  @db.Text
   decisionDate DateTime @default(now()) @map("decision_date")
 
-  // Relations
   request  Request @relation(fields: [requestId], references: [id])
   approver User    @relation(fields: [approverId], references: [id])
 
@@ -92,7 +88,7 @@ model Approval {
 
 model Payment {
   id               String   @id @default(uuid())
-  requestId        String   @unique @map("request_id") // One payment per request
+  requestId        String   @unique @map("request_id")
   financeOfficerId String   @map("finance_officer_id")
   amountPaid       Decimal  @map("amount_paid") @db.Decimal(10, 2)
   paymentMethod    String   @map("payment_method") @db.VarChar(50)

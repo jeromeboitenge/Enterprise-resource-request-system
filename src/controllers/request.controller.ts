@@ -227,10 +227,14 @@ export const getRequest = async (req: Request, res: Response, next: NextFunction
             });
         }
 
-        const isOwner = request.userId === req.user.id;
-        const isAuthorized = ['manager', 'departmenthead', 'finance', 'admin'].includes(req.user.role);
 
-        if (!isOwner && !isAuthorized) {
+        const isOwner = request.userId === req.user.id;
+        const isManagerOfDept = (req.user.role === 'manager' || req.user.role === 'departmenthead') &&
+            request.departmentId === req.user.departmentId;
+        const isAdmin = req.user.role === 'admin';
+        const isFinance = req.user.role === 'finance';
+
+        if (!isOwner && !isManagerOfDept && !isAdmin && !isFinance) {
             return res.status(403).json({
                 success: false,
                 message: 'You do not have permission to view this request'
@@ -270,14 +274,19 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        if (existingRequest.userId !== req.user.id) {
+
+        const isOwner = existingRequest.userId === req.user.id;
+        const isManagerOfDept = (req.user.role === 'manager' || req.user.role === 'departmenthead') &&
+            existingRequest.departmentId === req.user.departmentId;
+        const isAdmin = req.user.role === 'admin';
+
+        if (!isOwner && !isManagerOfDept && !isAdmin) {
             return res.status(403).json({
                 success: false,
-                message: 'You can only update your own requests'
+                message: 'You do not have permission to update this request'
             });
         }
 
-        // Allowed statuses for ANY update
         const allowedStatuses = [RequestStatus.Draft, RequestStatus.Submitted, RequestStatus.Rejected];
         if (!allowedStatuses.includes(existingRequest.status as any)) {
             return res.status(400).json({
@@ -286,21 +295,13 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        // Logic split:
-        // 1. If 'submitted': Only allow updating OPTIONAL fields (description).
-        // 2. If 'draft' or 'rejected': Allow updating ALL fields.
 
         let dataToUpdate: any = {};
 
         if (existingRequest.status === RequestStatus.Submitted) {
-            // Only allow optional fields
             if (description !== undefined) dataToUpdate.description = description;
 
-            // Warn or silently ignore if user tried to update other fields?
-            // For clear feedback, let's just proceed with restricted data. 
-            // If the user sends title/quantity, they will just be ignored here.
 
-            // Optimization: If nothing to update, return early?
             if (Object.keys(dataToUpdate).length === 0) {
                 return res.status(400).json({
                     success: false,
@@ -309,7 +310,6 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
             }
 
         } else {
-            // Draft or Rejected: Allow full updates
             dataToUpdate = {
                 title,
                 resourceName,
@@ -353,15 +353,18 @@ export const deleteRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        if (existingRequest.userId !== req.user.id) {
+        const isOwner = existingRequest.userId === req.user.id;
+        const isManagerOfDept = (req.user.role === 'manager' || req.user.role === 'departmenthead') &&
+            existingRequest.departmentId === req.user.departmentId;
+        const isAdmin = req.user.role === 'admin';
+
+        if (!isOwner && !isManagerOfDept && !isAdmin) {
             return res.status(403).json({
                 success: false,
-                message: 'You can only delete your own requests'
+                message: 'You do not have permission to delete this request'
             });
         }
 
-        // Allow deletion for Draft, Submitted, and Rejected
-        // Block for ManagerApproved and beyond
         const allowedStatuses = [RequestStatus.Draft, RequestStatus.Submitted, RequestStatus.Rejected];
         if (!allowedStatuses.includes(existingRequest.status as any)) {
             return res.status(400).json({
@@ -483,8 +486,8 @@ export const getDepartmentRequests = async (req: Request, res: Response, next: N
         const filter: any = {};
 
 
-        if (req.user.department) {
-            filter.departmentId = req.user.department;
+        if (req.user.departmentId) {
+            filter.departmentId = req.user.departmentId;
         }
 
         if (req.query.status) {

@@ -54,7 +54,6 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
                 });
             }
         } else {
-            // For any other role, or failsafe
             return res.status(403).json({
                 success: false,
                 message: 'You are not authorized to approve this request at this stage.'
@@ -74,7 +73,6 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
         if (role === 'manager' || role === 'departmenthead') {
             newStatus = RequestStatus.ManagerApproved;
         } else if (role === 'admin' && (request.status === RequestStatus.Submitted || request.status === RequestStatus.Draft)) {
-            // Admin acting as manager
             newStatus = RequestStatus.ManagerApproved;
         }
 
@@ -88,7 +86,6 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             include: { approver: { select: { name: true, email: true, role: true } } }
         });
 
-        // Send email notification
         if (request.user?.email) {
             const subject = `Request Approved: ${request.title}`;
             const text = `Your request "${request.title}" has been approved to status "${newStatus}".\n\nApprover Comment: ${comment || 'No comment provided.'}`;
@@ -169,7 +166,6 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
             include: { approver: { select: { name: true, email: true, role: true } } }
         });
 
-        // Send email notification
         if (request.user?.email) {
             const subject = `Request Rejected: ${request.title}`;
             const text = `Your request "${request.title}" has been rejected.\n\nRejection Comment: ${comment || 'No comment provided.'}`;
@@ -249,8 +245,6 @@ export const getPendingApprovals = async (req: Request, res: Response, next: Nex
                 ]
             };
         } else {
-            // Fallback or other roles? Maybe finance sees Approved?
-            // For now, keeping it restricted to approval flow.
             filter = { status: 'NEVER_MATCH' }; // Prevent seeing anything if not approver
         }
 
