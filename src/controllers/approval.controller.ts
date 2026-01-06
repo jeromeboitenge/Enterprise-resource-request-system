@@ -30,10 +30,25 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        if (request.status !== RequestStatus.Submitted) {
-            return res.status(400).json({
+        if (role === 'manager' || role === 'departmenthead') {
+            if (request.status !== RequestStatus.Submitted) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Request has already been ${request.status}. You can only approve submitted requests.`
+                });
+            }
+        } else if (role === 'admin') {
+            if (request.status !== RequestStatus.ManagerApproved) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Request status is ${request.status}. Admin can only approve requests already approved by a manager.`
+                });
+            }
+        } else {
+            // For any other role, or failsafe
+            return res.status(403).json({
                 success: false,
-                message: `Request has already been ${request.status}. Only submitted requests can be approved.`
+                message: 'You are not authorized to approve this request at this stage.'
             });
         }
 
@@ -46,9 +61,14 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             }
         });
 
+        let newStatus = RequestStatus.Approved;
+        if (role === 'manager' || role === 'departmenthead') {
+            newStatus = RequestStatus.ManagerApproved;
+        }
+
         const updatedRequest = await prisma.request.update({
             where: { id: requestId },
-            data: { status: RequestStatus.Approved }
+            data: { status: newStatus }
         });
 
         const approvalWithApprover = await prisma.approval.findUnique({
@@ -97,10 +117,11 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        if (request.status !== RequestStatus.Submitted) {
+        const allowedStatuses = [RequestStatus.Submitted, RequestStatus.ManagerApproved];
+        if (!allowedStatuses.includes(request.status as any)) {
             return res.status(400).json({
                 success: false,
-                message: `Request has already been ${request.status}. Only submitted requests can be rejected.`
+                message: `Cannot reject request with status: ${request.status}. Only submitted or manager-approved requests can be rejected.`
             });
         }
 
@@ -172,14 +193,21 @@ export const getApprovalHistory = async (req: Request, res: Response, next: Next
 export const getPendingApprovals = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { role, departmentId } = req.user;
-        const filter: any = {
-            status: { in: [RequestStatus.Submitted, RequestStatus.UnderReview] as any }
-        };
+        let filter: any = {};
 
         if (role === 'manager' || role === 'departmenthead') {
-            if (departmentId) {
-                filter.departmentId = departmentId;
-            }
+            filter = {
+                status: RequestStatus.Submitted,
+                departmentId: departmentId
+            };
+        } else if (role === 'admin') {
+            filter = {
+                status: RequestStatus.ManagerApproved
+            };
+        } else {
+            // Fallback or other roles? Maybe finance sees Approved?
+            // For now, keeping it restricted to approval flow.
+            filter = { status: 'NEVER_MATCH' }; // Prevent seeing anything if not approver
         }
 
         const requests = await prisma.request.findMany({

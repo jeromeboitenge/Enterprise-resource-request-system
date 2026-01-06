@@ -47,6 +47,16 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
             }
         });
 
+        if (!request.department.manager) {
+            const admin = await prisma.user.findFirst({
+                where: { role: 'admin' },
+                select: { name: true }
+            });
+            if (admin && request.department) {
+                (request.department as any).manager = { name: admin.name };
+            }
+        }
+
         res.status(201).json({
             success: true,
             message: 'Request created successfully',
@@ -86,6 +96,22 @@ export const getMyRequests = async (req: Request, res: Response, next: NextFunct
                 take
             })
         ]);
+
+        const hasMissingManager = requests.some((r: any) => !r.department?.manager);
+        if (hasMissingManager) {
+            const admin = await prisma.user.findFirst({
+                where: { role: 'admin' },
+                select: { name: true }
+            });
+
+            if (admin) {
+                requests.forEach((r: any) => {
+                    if (r.department && !r.department.manager) {
+                        (r.department as any).manager = { name: admin.name };
+                    }
+                });
+            }
+        }
 
         res.status(200).json({
             success: true,
@@ -142,6 +168,22 @@ export const getAllRequests = async (req: Request, res: Response, next: NextFunc
             })
         ]);
 
+        const hasMissingManager = requests.some((r: any) => !r.department?.manager);
+        if (hasMissingManager) {
+            const admin = await prisma.user.findFirst({
+                where: { role: 'admin' },
+                select: { name: true }
+            });
+
+            if (admin) {
+                requests.forEach((r: any) => {
+                    if (r.department && !r.department.manager) {
+                        (r.department as any).manager = { name: admin.name };
+                    }
+                });
+            }
+        }
+
         res.status(200).json({
             success: true,
             message: 'Requests retrieved successfully',
@@ -167,6 +209,16 @@ export const getRequest = async (req: Request, res: Response, next: NextFunction
                 }
             }
         });
+
+        if (request && !request.department.manager) {
+            const admin = await prisma.user.findFirst({
+                where: { role: 'admin' },
+                select: { name: true }
+            });
+            if (admin && request.department) {
+                (request.department as any).manager = { name: admin.name };
+            }
+        }
 
         if (!request) {
             return res.status(404).json({
