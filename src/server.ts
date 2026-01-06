@@ -12,8 +12,6 @@ import { apiLimiter } from "./middleware/rate-limiter.middleware";
 import { sanitizeInput, customSanitize } from "./middleware/sanitize.middleware";
 import { requestIdMiddleware } from "./middleware/request-id.middleware";
 import logger from "./utils/logger";
-import swaggerUi from 'swagger-ui-express';
-import { swaggerSpec } from './config/swagger.config';
 import prisma from './lib/prisma'; // Import prisma client
 
 try {
@@ -74,10 +72,7 @@ app.get("/", (req: Request, res: Response) => {
     });
 });
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'Enterprise Resource Request System API'
-}));
+
 
 app.use(config.prefix, mainRouter);
 
@@ -97,7 +92,7 @@ const startServer = async () => {
             logger.info(`🔒 CORS Origins: ${corsOrigins.join(', ')}`);
             logger.info(`🛡️  Security: Helmet, Rate Limiting, Input Sanitization enabled`);
             logger.info(`📊 Request ID tracking enabled`);
-            logger.info(`📚 API Documentation: http://localhost:${config.port}/api-docs`);
+
         });
     } catch (error) {
         logger.error("❌ Server failed to start:", error);
