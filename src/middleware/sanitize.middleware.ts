@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 
-export const sanitizeInput = (req: Request, res: Response, next: NextFunction) => {
+export const sanitizeInput = (req: Request, _res: Response, next: NextFunction) => {
 
     const sanitizeString = (str: string): string => {
         if (typeof str !== 'string') return str;

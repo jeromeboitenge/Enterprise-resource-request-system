@@ -21,7 +21,7 @@ const envSchema = Joi.object({
 }).unknown(true);
 
 export const validateEnv = (): void => {
-    const { error, value } = envSchema.validate(process.env, {
+    const { error } = envSchema.validate(process.env, {
         abortEarly: false,
         stripUnknown: false
     });

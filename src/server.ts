@@ -65,7 +65,7 @@ app.use(customSanitize);
 
 app.use(config.prefix, apiLimiter);
 
-app.get("/", (req: Request, res: Response) => {
+app.get("/", (_req: Request, res: Response) => {
     res.status(200).json({
         success: true,
         message: "Enterprise Resource Request System API",

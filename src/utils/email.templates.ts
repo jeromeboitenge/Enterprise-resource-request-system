@@ -46,7 +46,6 @@ export const generateEmailHtml = (title: string, message: string, ctaLink?: stri
             margin-top: 0;
             margin-bottom: 20px;
             border-bottom: 2px solid #e2e8f0;
-            border-bottom: 2px solid #e2e8f0;
             padding-bottom: 10px;
         }
         .highlight-box {

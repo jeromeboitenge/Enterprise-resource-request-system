@@ -1,6 +1,6 @@
 
 
-export interface PaginationMeta {
+export interface Pagination {
     page: number;
     limit: number;
     total: number;
@@ -28,7 +28,7 @@ export const formatPaginatedResponse = <T>(
 ) => {
     const totalPages = Math.ceil(total / limit);
 
-    const pagination: PaginationMeta = {
+    const pagination: Pagination = {
         page,
         limit,
         total,

@@ -3,9 +3,9 @@ import { Prisma } from '@prisma/client';
 
 export const errorHandler = (
     err: any,
-    req: Request,
+    _req: Request,
     res: Response,
-    next: NextFunction
+    _next: NextFunction
 ) => {
     let statusCode = err.statusCode || 500;
     let message = err.message || 'Something went wrong';
@@ -60,7 +60,7 @@ export const errorHandler = (
     res.status(statusCode).json(response);
 };
 
-export const notFoundHandler = (req: Request, res: Response, next: NextFunction) => {
+export const notFoundHandler = (req: Request, res: Response, _next: NextFunction) => {
     res.status(404).json({
         success: false,
         message: `Route ${req.originalUrl} not found`,

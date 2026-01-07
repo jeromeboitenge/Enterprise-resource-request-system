@@ -13,7 +13,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
-            return res.status(409).json({
+            res.status(409).json({
                 success: false,
                 message: 'User with this email already exists'
             });
@@ -72,7 +72,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         const user = await prisma.user.findUnique({ where: { email }, include: { department: true } });
 
         if (!user) {
-            return res.status(401).json({
+            res.status(401).json({
                 success: false,
                 message: 'Invalid email or password'
             });
@@ -81,14 +81,14 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
         if (!isPasswordValid) {
-            return res.status(401).json({
+            res.status(401).json({
                 success: false,
                 message: 'Invalid email or password'
             });
         }
 
         if (!user.isActive) {
-            return res.status(403).json({
+            res.status(403).json({
                 success: false,
                 message: 'Your account has been deactivated. Please contact administrator.'
             });
@@ -136,14 +136,14 @@ export const verifyLogin = async (req: Request, res: Response, next: NextFunctio
         });
 
         if (!user) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
 
         if (user.otpHash !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: 'Invalid or expired OTP'
             });
@@ -183,7 +183,7 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
         });
 
         if (!user) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
@@ -193,7 +193,7 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
         const {
             password,
             otpVerified,
-            otpCode,
+            otpHash,
             otpExpiresAt,
             ...userWithoutPassword
         } = user;
@@ -215,7 +215,7 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
         if (email && email !== req.user.email) {
             const existingUser = await prisma.user.findUnique({ where: { email } });
             if (existingUser) {
-                return res.status(409).json({
+                res.status(409).json({
                     success: false,
                     message: 'Email is already in use'
                 });
@@ -246,7 +246,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
         const user = await prisma.user.findUnique({ where: { id: req.user.id } });
 
         if (!user) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
@@ -254,7 +254,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
 
         const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
         if (!isCurrentPasswordValid) {
-            return res.status(401).json({
+            res.status(401).json({
                 success: false,
                 message: 'Current password is incorrect'
             });
@@ -262,7 +262,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
 
         const isSamePassword = await bcrypt.compare(newPassword, user.password);
         if (isSamePassword) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: 'New password must be different from current password'
             });
@@ -288,7 +288,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
                 generateEmailHtml('Password Change', `Please use the code below to verify your password change:<br><br><div class="highlight-box">${newOtp}</div><br>This code will expire in 10 minutes.`)
             );
 
-            return res.status(202).json({
+            res.status(202).json({
                 success: true,
                 message: 'OTP sent to your email. Please include the OTP to confirm password change.',
                 data: { requireOtp: true }
@@ -297,7 +297,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
 
 
         if (user.otpHash !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: 'Invalid or expired OTP'
             });
@@ -332,7 +332,7 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
         const user = await prisma.user.findUnique({ where: { email } });
 
         if (!user) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'User with this email does not exist'
             });
@@ -373,14 +373,14 @@ export const verifyResetOtp = async (req: Request, res: Response, next: NextFunc
         const user = await prisma.user.findUnique({ where: { email } });
 
         if (!user) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
 
         if (user.otpHash !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: 'Invalid or expired OTP'
             });
@@ -408,7 +408,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
         const user = await prisma.user.findUnique({ where: { email } });
 
         if (!user) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
@@ -416,7 +416,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
 
 
         if (!user.otpVerified) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: 'Please verify OTP first'
             });
@@ -424,7 +424,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
 
 
         if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: 'OTP Session expired. Please start over.'
             });
@@ -432,7 +432,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
 
         const isSamePassword = await bcrypt.compare(newPassword, user.password);
         if (isSamePassword) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: 'New password must be different from current password'
             });

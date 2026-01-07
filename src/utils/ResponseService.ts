@@ -100,9 +100,7 @@ export class ResponseService {
         });
     };
 
-    /**
-     * 403 Forbidden - Insufficient permissions
-     */
+
     forbidden = (res: Response, message: string = "Access forbidden"): Response => {
         return this.response({
             res,
@@ -112,9 +110,7 @@ export class ResponseService {
         });
     };
 
-    /**
-     * 404 Not Found - Resource not found
-     */
+
     notFound = (res: Response, message: string = "Resource not found"): Response => {
         return this.response({
             res,
@@ -124,9 +120,6 @@ export class ResponseService {
         });
     };
 
-    /**
-     * 409 Conflict - Resource conflict (e.g., duplicate entry)
-     */
     conflict = (res: Response, message: string = "Resource conflict", details?: any): Response => {
         return this.response({
             res,
@@ -136,9 +129,6 @@ export class ResponseService {
         });
     };
 
-    /**
-     * 422 Unprocessable Entity - Validation errors
-     */
     unprocessableEntity = (
         res: Response,
         message: string = "Validation failed",

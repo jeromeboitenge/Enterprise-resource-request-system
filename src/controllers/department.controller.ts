@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 
-export const createDepartment = async (req: Request, res: Response, next: NextFunction) => {
+export const createDepartment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { name, description } = req.body;
 
@@ -11,7 +11,7 @@ export const createDepartment = async (req: Request, res: Response, next: NextFu
         });
 
         if (existingDepartment) {
-            return res.status(409).json({
+            res.status(409).json({
                 success: false,
                 message: 'Department with this name already exists'
             });
@@ -31,7 +31,7 @@ export const createDepartment = async (req: Request, res: Response, next: NextFu
     }
 };
 
-export const getAllDepartments = async (req: Request, res: Response, next: NextFunction) => {
+export const getAllDepartments = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { page, limit, skip, take } = getPaginationParams(req.query);
 
@@ -54,14 +54,14 @@ export const getAllDepartments = async (req: Request, res: Response, next: NextF
     }
 };
 
-export const getDepartment = async (req: Request, res: Response, next: NextFunction) => {
+export const getDepartment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const department = await prisma.department.findUnique({
             where: { id: req.params.id }
         });
 
         if (!department) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'Department not found'
             });
@@ -77,7 +77,7 @@ export const getDepartment = async (req: Request, res: Response, next: NextFunct
     }
 };
 
-export const updateDepartment = async (req: Request, res: Response, next: NextFunction) => {
+export const updateDepartment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { name, description } = req.body;
 
@@ -88,7 +88,7 @@ export const updateDepartment = async (req: Request, res: Response, next: NextFu
                 const isSameDepartment = existingDepartment.id === req.params.id;
 
                 if (!isSameDepartment) {
-                    return res.status(409).json({
+                    res.status(409).json({
                         success: false,
                         message: 'Department with this name already exists'
                     });
@@ -98,7 +98,7 @@ export const updateDepartment = async (req: Request, res: Response, next: NextFu
 
         const deptExists = await prisma.department.findUnique({ where: { id: req.params.id } });
         if (!deptExists) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'Department not found'
             });
@@ -123,12 +123,12 @@ export const updateDepartment = async (req: Request, res: Response, next: NextFu
     }
 };
 
-export const deleteDepartment = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteDepartment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const deptExists = await prisma.department.findUnique({ where: { id: req.params.id } });
 
         if (!deptExists) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'Department not found'
             });

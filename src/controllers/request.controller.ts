@@ -4,7 +4,7 @@ import { RequestStatus } from '../types/request.interface';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 import { getRequestInclude, getAdminFallback, attachAdminAsManager } from '../utils/queryHelpers';
 
-export const createRequest = async (req: Request, res: Response, next: NextFunction) => {
+export const createRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const {
             title,
@@ -17,7 +17,7 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
         } = req.body;
 
         if (!req.user.departmentId) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: 'You are not assigned to any department. Please contact admin.'
             });
@@ -56,7 +56,7 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
     }
 };
 
-export const getMyRequests = async (req: Request, res: Response, next: NextFunction) => {
+export const getMyRequests = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const filter: any = { userId: req.user.id };
 
@@ -90,14 +90,14 @@ export const getMyRequests = async (req: Request, res: Response, next: NextFunct
     }
 };
 
-export const getAllRequests = async (req: Request, res: Response, next: NextFunction) => {
+export const getAllRequests = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const filter: any = {};
         const { role, departmentId } = req.user;
 
         if (role === 'MANAGER' || role === 'MANAGER') {
             if (!departmentId) {
-                return res.status(400).json({
+                res.status(400).json({
                     success: false,
                     message: 'Manager/Head has no assigned department.'
                 });
@@ -139,7 +139,7 @@ export const getAllRequests = async (req: Request, res: Response, next: NextFunc
     }
 };
 
-export const getRequest = async (req: Request, res: Response, next: NextFunction) => {
+export const getRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const [request, admin] = await Promise.all([
             prisma.request.findUnique({
@@ -154,7 +154,7 @@ export const getRequest = async (req: Request, res: Response, next: NextFunction
         }
 
         if (!request) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: `Request not found with ID: ${req.params.id}`
             });
@@ -168,7 +168,7 @@ export const getRequest = async (req: Request, res: Response, next: NextFunction
         const isFinance = req.user.role === 'finance';
 
         if (!isOwner && !isManagerOfDept && !isAdmin && !isFinance) {
-            return res.status(403).json({
+            res.status(403).json({
                 success: false,
                 message: 'You do not have permission to view this request'
             });
@@ -184,7 +184,7 @@ export const getRequest = async (req: Request, res: Response, next: NextFunction
     }
 };
 
-export const updateRequest = async (req: Request, res: Response, next: NextFunction) => {
+export const updateRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const {
             title,
@@ -201,7 +201,7 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
         });
 
         if (!existingRequest) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: `Request not found with ID: ${req.params.id}`
             });
@@ -214,7 +214,7 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
         const isAdmin = req.user.role === 'ADMIN';
 
         if (!isOwner && !isManagerOfDept && !isAdmin) {
-            return res.status(403).json({
+            res.status(403).json({
                 success: false,
                 message: 'You do not have permission to update this request'
             });
@@ -222,7 +222,7 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
 
         const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.SUBMITTED, RequestStatus.REJECTED];
         if (!allowedStatuses.includes(existingRequest.status as any)) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: `Cannot update request with status: ${existingRequest.status}. Request is likely already approved or processing.`
             });
@@ -236,7 +236,7 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
 
 
             if (Object.keys(dataToUpdate).length === 0) {
-                return res.status(400).json({
+                res.status(400).json({
                     success: false,
                     message: 'For submitted requests, only the description (optional field) can be modified.'
                 });
@@ -273,14 +273,14 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
     }
 };
 
-export const deleteRequest = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const existingRequest = await prisma.request.findUnique({
             where: { id: req.params.id }
         });
 
         if (!existingRequest) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: `Request not found with ID: ${req.params.id}`
             });
@@ -292,7 +292,7 @@ export const deleteRequest = async (req: Request, res: Response, next: NextFunct
         const isAdmin = req.user.role === 'ADMIN';
 
         if (!isOwner && !isManagerOfDept && !isAdmin) {
-            return res.status(403).json({
+            res.status(403).json({
                 success: false,
                 message: 'You do not have permission to delete this request'
             });
@@ -300,7 +300,7 @@ export const deleteRequest = async (req: Request, res: Response, next: NextFunct
 
         const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.SUBMITTED, RequestStatus.REJECTED];
         if (!allowedStatuses.includes(existingRequest.status as any)) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: `Cannot delete request with status: ${existingRequest.status}. Request has likely already been approved.`
             });
@@ -320,21 +320,21 @@ export const deleteRequest = async (req: Request, res: Response, next: NextFunct
     }
 };
 
-export const submitRequest = async (req: Request, res: Response, next: NextFunction) => {
+export const submitRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const existingRequest = await prisma.request.findUnique({
             where: { id: req.params.id }
         });
 
         if (!existingRequest) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: `Request not found with ID: ${req.params.id}`
             });
         }
 
         if (existingRequest.userId !== req.user.id) {
-            return res.status(403).json({
+            res.status(403).json({
                 success: false,
                 message: 'You can only submit your own requests'
             });
@@ -342,7 +342,7 @@ export const submitRequest = async (req: Request, res: Response, next: NextFunct
 
         const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.REJECTED];
         if (!allowedStatuses.includes(existingRequest.status as any)) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: `Cannot submit request with status: ${existingRequest.status}. Only draft or rejected requests can be submitted.`
             });
@@ -367,32 +367,33 @@ export const submitRequest = async (req: Request, res: Response, next: NextFunct
     }
 };
 
-export const cancelRequest = async (req: Request, res: Response, next: NextFunction) => {
+export const cancelRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const existingRequest = await prisma.request.findUnique({
             where: { id: req.params.id }
         });
 
         if (!existingRequest) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: `Request not found with ID: ${req.params.id}`
             });
         }
 
         if (existingRequest.userId !== req.user.id) {
-            return res.status(403).json({
+            res.status(403).json({
                 success: false,
                 message: 'You can only cancel your own requests'
             });
         }
 
         const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.SUBMITTED, RequestStatus.SEMI_APPROVED];
-        if (!allowedStatuses.includes(existingRequest.status as any)) {
-            return res.status(400).json({
+        if (!allowedStatuses.includes(existingRequest!.status as any)) {
+            res.status(400).json({
                 success: false,
-                message: `Cannot cancel request with status: ${existingRequest.status}. Only draft, submitted, or under review requests can be cancelled.`
+                message: `Cannot cancel request with status: ${existingRequest!.status}. Only draft, submitted, or under review requests can be cancelled.`
             });
+            return;
         }
 
         const request = await prisma.request.update({
@@ -414,7 +415,7 @@ export const cancelRequest = async (req: Request, res: Response, next: NextFunct
     }
 };
 
-export const getDepartmentRequests = async (req: Request, res: Response, next: NextFunction) => {
+export const getDepartmentRequests = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const filter: any = {};
 

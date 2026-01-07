@@ -4,7 +4,7 @@ import { RequestStatus } from '../types/request.interface';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 import { getPaymentInclude } from '../utils/queryHelpers';
 
-export const processPayment = async (req: Request, res: Response, next: NextFunction) => {
+export const processPayment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { requestId } = req.params;
         const { amountPaid, paymentMethod } = req.body;
@@ -18,14 +18,14 @@ export const processPayment = async (req: Request, res: Response, next: NextFunc
         });
 
         if (!request) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'Request not found'
             });
         }
 
-        if (request.status !== RequestStatus.Approved) {
-            return res.status(400).json({
+        if (request.status !== RequestStatus.APPROVED) {
+            res.status(400).json({
                 success: false,
                 message: 'Only approved requests can be paid'
             });
@@ -36,7 +36,7 @@ export const processPayment = async (req: Request, res: Response, next: NextFunc
         });
 
         if (existingPayment) {
-            return res.status(409).json({
+            res.status(409).json({
                 success: false,
                 message: 'Payment already processed for this request'
             });
@@ -44,7 +44,7 @@ export const processPayment = async (req: Request, res: Response, next: NextFunc
 
 
         if (Number(amountPaid) > Number(request.estimatedCost)) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: 'Payment amount cannot exceed estimated cost'
             });
@@ -61,7 +61,7 @@ export const processPayment = async (req: Request, res: Response, next: NextFunc
 
         const updatedRequest = await prisma.request.update({
             where: { id: requestId },
-            data: { status: RequestStatus.Funded }
+            data: { status: RequestStatus.PAID }
         });
 
         const paymentWithOfficer = await prisma.payment.findUnique({
@@ -82,7 +82,7 @@ export const processPayment = async (req: Request, res: Response, next: NextFunc
     }
 };
 
-export const getPaymentHistory = async (req: Request, res: Response, next: NextFunction) => {
+export const getPaymentHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { paymentMethod, startDate, endDate } = req.query;
         const { page, limit, skip, take } = getPaginationParams(req.query);
@@ -136,7 +136,7 @@ export const getPaymentHistory = async (req: Request, res: Response, next: NextF
     }
 };
 
-export const getPayment = async (req: Request, res: Response, next: NextFunction) => {
+export const getPayment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const payment = await prisma.payment.findUnique({
             where: { id: req.params.id },
@@ -152,7 +152,7 @@ export const getPayment = async (req: Request, res: Response, next: NextFunction
         });
 
         if (!payment) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'Payment not found'
             });
@@ -168,13 +168,13 @@ export const getPayment = async (req: Request, res: Response, next: NextFunction
     }
 };
 
-export const getPendingPayments = async (req: Request, res: Response, next: NextFunction) => {
+export const getPendingPayments = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { page, limit, skip, take } = getPaginationParams(req.query);
 
         const [requests, total] = await Promise.all([
             prisma.request.findMany({
-                where: { status: RequestStatus.Approved as any },
+                where: { status: RequestStatus.APPROVED },
                 include: {
                     user: { select: { name: true, email: true, role: true, department: true } },
                     department: { select: { name: true } }
@@ -183,7 +183,7 @@ export const getPendingPayments = async (req: Request, res: Response, next: Next
                 skip,
                 take
             }),
-            prisma.request.count({ where: { status: RequestStatus.Approved as any } })
+            prisma.request.count({ where: { status: RequestStatus.APPROVED } })
         ]);
 
         const totalEstimatedCost = requests.reduce((sum, req) => sum + Number(req.estimatedCost), 0);

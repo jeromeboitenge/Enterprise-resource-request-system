@@ -6,7 +6,7 @@ import { generateEmailHtml } from '../utils/email.templates';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 import { getApprovalInclude } from '../utils/queryHelpers';
 
-export const approveRequest = async (req: Request, res: Response, next: NextFunction) => {
+export const approveRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { requestId } = req.params;
         const { comment } = req.body;
@@ -20,7 +20,7 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
         });
 
         if (!request) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'Request not found'
             });
@@ -28,7 +28,7 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
 
         const { role, departmentId } = req.user;
         if ((role === 'MANAGER' || role === 'MANAGER') && request.departmentId !== departmentId) {
-            return res.status(403).json({
+            res.status(403).json({
                 success: false,
                 message: 'You can only approve requests from your own department'
             });
@@ -36,7 +36,7 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
 
         if (role === 'MANAGER' || role === 'MANAGER') {
             if (request.status !== RequestStatus.SUBMITTED && request.status !== RequestStatus.DRAFT) {
-                return res.status(400).json({
+                res.status(400).json({
                     success: false,
                     message: `Request has already been ${request.status}. You can only approve draft or submitted requests.`
                 });
@@ -48,7 +48,7 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
                 : [RequestStatus.SEMI_APPROVED];
 
             if (!allowedStatuses.includes(request.status as any)) {
-                return res.status(400).json({
+                res.status(400).json({
                     success: false,
                     message: isManagerless
                         ? `Request status is ${request.status}. Admin acting as manager can approve draft, submitted or manager-approved requests.`
@@ -56,7 +56,7 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
                 });
             }
         } else {
-            return res.status(403).json({
+            res.status(403).json({
                 success: false,
                 message: 'You are not authorized to approve this request at this stage.'
             });
@@ -113,7 +113,7 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
     }
 };
 
-export const rejectRequest = async (req: Request, res: Response, next: NextFunction) => {
+export const rejectRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { requestId } = req.params;
         const { comment } = req.body;
@@ -128,14 +128,14 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
 
         const { role, departmentId } = req.user;
         if ((role === 'MANAGER' || role === 'MANAGER') && request?.departmentId !== departmentId) {
-            return res.status(403).json({
+            res.status(403).json({
                 success: false,
                 message: 'You can only reject requests from your own department'
             });
         }
 
         if (!request) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'Request not found'
             });
@@ -143,7 +143,7 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
 
         const allowedStatuses = [RequestStatus.SUBMITTED, RequestStatus.SEMI_APPROVED];
         if (!allowedStatuses.includes(request.status as any)) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: `Cannot reject request with status: ${request.status}. Only submitted or manager-approved requests can be rejected.`
             });
@@ -193,14 +193,14 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
     }
 };
 
-export const getApprovalHistory = async (req: Request, res: Response, next: NextFunction) => {
+export const getApprovalHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { requestId } = req.params;
         const { page, limit, skip, take } = getPaginationParams(req.query);
 
         const request = await prisma.request.findUnique({ where: { id: requestId } });
         if (!request) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'Request not found'
             });
@@ -236,7 +236,7 @@ export const getApprovalHistory = async (req: Request, res: Response, next: Next
     }
 };
 
-export const getPendingApprovals = async (req: Request, res: Response, next: NextFunction) => {
+export const getPendingApprovals = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { role, departmentId } = req.user;
         const { page, limit, skip, take } = getPaginationParams(req.query);

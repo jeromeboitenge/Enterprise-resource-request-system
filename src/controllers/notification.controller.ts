@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { NotificationService } from '../services/notification.service';
 
-export const getNotifications = async (req: Request, res: Response, next: NextFunction) => {
+export const getNotifications = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { isRead, page, limit } = req.query;
 
@@ -24,7 +24,7 @@ export const getNotifications = async (req: Request, res: Response, next: NextFu
     }
 };
 
-export const markAsRead = async (req: Request, res: Response, next: NextFunction) => {
+export const markAsRead = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const notification = await NotificationService.markAsRead(
             req.params.id,
@@ -32,7 +32,7 @@ export const markAsRead = async (req: Request, res: Response, next: NextFunction
         );
 
         if (!notification) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'Notification not found'
             });
@@ -48,7 +48,7 @@ export const markAsRead = async (req: Request, res: Response, next: NextFunction
     }
 };
 
-export const markAllAsRead = async (req: Request, res: Response, next: NextFunction) => {
+export const markAllAsRead = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         await NotificationService.markAllAsRead(req.user.id);
 
@@ -62,7 +62,7 @@ export const markAllAsRead = async (req: Request, res: Response, next: NextFunct
     }
 };
 
-export const deleteNotification = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteNotification = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const notification = await NotificationService.delete(
             req.params.id,
@@ -70,7 +70,7 @@ export const deleteNotification = async (req: Request, res: Response, next: Next
         );
 
         if (!notification) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'Notification not found'
             });

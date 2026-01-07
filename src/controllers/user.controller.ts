@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import prisma from '../lib/prisma';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 
-export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
+export const getAllUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { role, isActive, department } = req.query;
         const { page, limit, skip, take } = getPaginationParams(req.query);
@@ -54,17 +54,18 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
     }
 };
 
-export const getUser = async (req: Request, res: Response, next: NextFunction) => {
+export const getUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const user = await prisma.user.findUnique({
             where: { id: req.params.id }
         });
 
         if (!user) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
+            return;
         }
 
         const { password, ...userWithoutPassword } = user;
@@ -79,7 +80,7 @@ export const getUser = async (req: Request, res: Response, next: NextFunction) =
     }
 };
 
-export const createUser = async (req: Request, res: Response, next: NextFunction) => {
+export const createUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { name, email, password, role, department, isActive } = req.body;
 
@@ -88,7 +89,7 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
         });
 
         if (existingUser) {
-            return res.status(409).json({
+            res.status(409).json({
                 success: false,
                 message: 'User with this email already exists'
             });
@@ -135,14 +136,14 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
     }
 };
 
-export const updateUser = async (req: Request, res: Response, next: NextFunction) => {
+export const updateUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { name, email, role, department, isActive } = req.body;
 
         if (email) {
             const existingUser = await prisma.user.findUnique({ where: { email } });
             if (existingUser && existingUser.id !== req.params.id) {
-                return res.status(409).json({
+                res.status(409).json({
                     success: false,
                     message: 'Email is already in use'
                 });
@@ -152,7 +153,7 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
 
         const userExists = await prisma.user.findUnique({ where: { id: req.params.id } });
         if (!userExists) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
@@ -168,7 +169,7 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
                 await prisma.department.create({
                     data: {
                         name: department,
-                        description: `Automatically created during update of user ${userExists.email}`
+                        description: `Automatically created during update of user ${userExists!.email}`
                     }
                 });
             }
@@ -198,13 +199,13 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
     }
 };
 
-export const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
 
         const userExists = await prisma.user.findUnique({ where: { id: req.params.id } });
 
         if (!userExists) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
@@ -226,14 +227,14 @@ export const deleteUser = async (req: Request, res: Response, next: NextFunction
     }
 };
 
-export const resetUserPassword = async (req: Request, res: Response, next: NextFunction) => {
+export const resetUserPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { newPassword } = req.body;
 
         const userExists = await prisma.user.findUnique({ where: { id: req.params.id } });
 
         if (!userExists) {
-            return res.status(404).json({
+            res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
