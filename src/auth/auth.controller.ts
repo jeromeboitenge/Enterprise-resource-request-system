@@ -87,7 +87,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             });
         }
 
-        if (!user.isActive) {
+        if (!user!.isActive) {
             res.status(403).json({
                 success: false,
                 message: 'Your account has been deactivated. Please contact administrator.'
@@ -118,7 +118,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             success: true,
             message: 'OTP sent to your email. Please verify to complete login.',
             data: {
-                email: user.email
+                email: user!.email
             }
         });
     } catch (error) {
@@ -142,7 +142,7 @@ export const verifyLogin = async (req: Request, res: Response, next: NextFunctio
             });
         }
 
-        if (user!.otpHash !== otp || !user.otpExpiresAt || user!.otpExpiresAt < new Date()) {
+        if (user!.otpHash !== otp || !user!.otpExpiresAt || user!.otpExpiresAt < new Date()) {
             res.status(400).json({
                 success: false,
                 message: 'Invalid or expired OTP'
@@ -159,7 +159,7 @@ export const verifyLogin = async (req: Request, res: Response, next: NextFunctio
         });
 
         const token = jwt.sign(
-            { userId: user.id, role: user.role },
+            { userId: user!.id, role: user!.role },
             process.env.JWT_SECRET as string,
             { expiresIn: '1d' }
         );
@@ -193,10 +193,9 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
         const {
             password,
             otpHash,
-            otpHash,
             otpExpiresAt,
             ...userWithoutPassword
-        } = user;
+        } = user!;
 
         res.status(200).json({
             success: true,
@@ -296,7 +295,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
         }
 
 
-        if (user!.otpHash !== otp || !user.otpExpiresAt || user!.otpExpiresAt < new Date()) {
+        if (user!.otpHash !== otp || !user!.otpExpiresAt || user!.otpExpiresAt < new Date()) {
             res.status(400).json({
                 success: false,
                 message: 'Invalid or expired OTP'
@@ -379,7 +378,7 @@ export const verifyResetOtp = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        if (user!.otpHash !== otp || !user.otpExpiresAt || user!.otpExpiresAt < new Date()) {
+        if (user!.otpHash !== otp || !user!.otpExpiresAt || user!.otpExpiresAt < new Date()) {
             res.status(400).json({
                 success: false,
                 message: 'Invalid or expired OTP'
@@ -423,7 +422,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
         }
 
 
-        if (!user.otpExpiresAt || user!.otpExpiresAt < new Date()) {
+        if (!user!.otpExpiresAt || user!.otpExpiresAt < new Date()) {
             res.status(400).json({
                 success: false,
                 message: 'OTP Session expired. Please start over.'

@@ -12,10 +12,11 @@ export const authenticate = async (
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({
+            res.status(401).json({
                 success: false,
                 message: 'No token provided. Please login first.'
             });
+            return;
         }
 
         const token = authHeader.split(' ')[1];
@@ -27,10 +28,11 @@ export const authenticate = async (
         });
 
         if (!user) {
-            return res.status(401).json({
+            res.status(404).json({
                 success: false,
-                message: 'User not found. Token may be invalid.'
+                message: 'User not found. Please contact administrator.'
             });
+            return;
         }
 
         const { password, ...userWithoutPassword } = user;
@@ -39,20 +41,21 @@ export const authenticate = async (
         next();
     } catch (error: any) {
         if (error.name === 'JsonWebTokenError') {
-            return res.status(401).json({
+            res.status(401).json({
                 success: false,
-                message: 'Invalid token. Please login again.'
+                message: 'Invalid or expired token. Please login again.'
             });
+            return;
         }
 
         if (error.name === 'TokenExpiredError') {
-            return res.status(401).json({
+            res.status(401).json({
                 success: false,
                 message: 'Token expired. Please login again.'
             });
         }
 
-        return res.status(401).json({
+        res.status(401).json({
             success: false,
             message: 'Authentication failed'
         });
