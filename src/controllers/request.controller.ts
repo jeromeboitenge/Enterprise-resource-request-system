@@ -161,9 +161,9 @@ export const getRequest = async (req: Request, res: Response, next: NextFunction
         }
 
 
-        const isOwner = request.userId === req.user.id;
+        const isOwner = request!.userId === req.user.id;
         const isManagerOfDept = (req.user.role === 'MANAGER' || req.user.role === 'MANAGER') &&
-            request.departmentId === req.user.departmentId;
+            request!.departmentId === req.user.departmentId;
         const isAdmin = req.user.role === 'ADMIN';
         const isFinance = req.user.role === 'finance';
 
@@ -208,9 +208,9 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
         }
 
 
-        const isOwner = existingRequest.userId === req.user.id;
+        const isOwner = existingRequest!.userId === req.user.id;
         const isManagerOfDept = (req.user.role === 'MANAGER' || req.user.role === 'MANAGER') &&
-            existingRequest.departmentId === req.user.departmentId;
+            existingRequest!.departmentId === req.user.departmentId;
         const isAdmin = req.user.role === 'ADMIN';
 
         if (!isOwner && !isManagerOfDept && !isAdmin) {
@@ -221,17 +221,17 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
         }
 
         const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.SUBMITTED, RequestStatus.REJECTED];
-        if (!allowedStatuses.includes(existingRequest.status as any)) {
+        if (!allowedStatuses.includes(existingRequest!.status as any)) {
             res.status(400).json({
                 success: false,
-                message: `Cannot update request with status: ${existingRequest.status}. Request is likely already approved or processing.`
+                message: `Cannot update request with status: ${existingRequest!.status}. Request is likely already approved or processing.`
             });
         }
 
 
         let dataToUpdate: any = {};
 
-        if (existingRequest.status === RequestStatus.SUBMITTED) {
+        if (existingRequest!.status === RequestStatus.SUBMITTED) {
             if (description !== undefined) dataToUpdate.description = description;
 
 
@@ -286,9 +286,9 @@ export const deleteRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        const isOwner = existingRequest.userId === req.user.id;
+        const isOwner = existingRequest!.userId === req.user.id;
         const isManagerOfDept = (req.user.role === 'MANAGER' || req.user.role === 'MANAGER') &&
-            existingRequest.departmentId === req.user.departmentId;
+            existingRequest!.departmentId === req.user.departmentId;
         const isAdmin = req.user.role === 'ADMIN';
 
         if (!isOwner && !isManagerOfDept && !isAdmin) {
@@ -299,10 +299,10 @@ export const deleteRequest = async (req: Request, res: Response, next: NextFunct
         }
 
         const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.SUBMITTED, RequestStatus.REJECTED];
-        if (!allowedStatuses.includes(existingRequest.status as any)) {
+        if (!allowedStatuses.includes(existingRequest!.status as any)) {
             res.status(400).json({
                 success: false,
-                message: `Cannot delete request with status: ${existingRequest.status}. Request has likely already been approved.`
+                message: `Cannot delete request with status: ${existingRequest!.status}. Request has likely already been approved.`
             });
         }
 
@@ -333,7 +333,7 @@ export const submitRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        if (existingRequest.userId !== req.user.id) {
+        if (existingRequest!.userId !== req.user.id) {
             res.status(403).json({
                 success: false,
                 message: 'You can only submit your own requests'
@@ -341,10 +341,10 @@ export const submitRequest = async (req: Request, res: Response, next: NextFunct
         }
 
         const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.REJECTED];
-        if (!allowedStatuses.includes(existingRequest.status as any)) {
+        if (!allowedStatuses.includes(existingRequest!.status as any)) {
             res.status(400).json({
                 success: false,
-                message: `Cannot submit request with status: ${existingRequest.status}. Only draft or rejected requests can be submitted.`
+                message: `Cannot submit request with status: ${existingRequest!.status}. Only draft or rejected requests can be submitted.`
             });
         }
 
@@ -380,7 +380,7 @@ export const cancelRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        if (existingRequest.userId !== req.user.id) {
+        if (existingRequest!.userId !== req.user.id) {
             res.status(403).json({
                 success: false,
                 message: 'You can only cancel your own requests'

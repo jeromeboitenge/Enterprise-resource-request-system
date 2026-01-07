@@ -24,7 +24,7 @@ export const processPayment = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        if (request.status !== RequestStatus.APPROVED) {
+        if (request!.status !== RequestStatus.APPROVED) {
             res.status(400).json({
                 success: false,
                 message: 'Only approved requests can be paid'
@@ -43,7 +43,7 @@ export const processPayment = async (req: Request, res: Response, next: NextFunc
         }
 
 
-        if (Number(amountPaid) > Number(request.estimatedCost)) {
+        if (Number(amountPaid) > Number(request!.estimatedCost)) {
             res.status(400).json({
                 success: false,
                 message: 'Payment amount cannot exceed estimated cost'

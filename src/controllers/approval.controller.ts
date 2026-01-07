@@ -38,7 +38,7 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             if (request.status !== RequestStatus.SUBMITTED && request.status !== RequestStatus.DRAFT) {
                 res.status(400).json({
                     success: false,
-                    message: `Request has already been ${request.status}. You can only approve draft or submitted requests.`
+                    message: `Request has already been ${request!.status}. You can only approve draft or submitted requests.`
                 });
             }
         } else if (role === 'ADMIN') {
@@ -47,12 +47,12 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
                 ? [RequestStatus.SUBMITTED, RequestStatus.SEMI_APPROVED, RequestStatus.DRAFT]
                 : [RequestStatus.SEMI_APPROVED];
 
-            if (!allowedStatuses.includes(request.status as any)) {
+            if (!allowedStatuses.includes(request!.status as any)) {
                 res.status(400).json({
                     success: false,
                     message: isManagerless
-                        ? `Request status is ${request.status}. Admin acting as manager can approve draft, submitted or manager-approved requests.`
-                        : `Request status is ${request.status}. Admin can only approve requests already approved by a manager.`
+                        ? `Request status is ${request!.status}. Admin acting as manager can approve draft, submitted or manager-approved requests.`
+                        : `Request status is ${request!.status}. Admin can only approve requests already approved by a manager.`
                 });
             }
         } else {
@@ -74,7 +74,7 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
         let newStatus = RequestStatus.APPROVED;
         if (role === 'MANAGER' || role === 'MANAGER') {
             newStatus = RequestStatus.SEMI_APPROVED;
-        } else if (role === 'ADMIN' && (request.status === RequestStatus.SUBMITTED || request.status === RequestStatus.DRAFT)) {
+        } else if (role === 'ADMIN' && (request!.status === RequestStatus.SUBMITTED || request!.status === RequestStatus.DRAFT)) {
             newStatus = RequestStatus.SEMI_APPROVED;
         }
 
@@ -88,16 +88,16 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             include: getApprovalInclude()
         });
 
-        if (request.user?.email) {
-            const subject = `Request Approved: ${request.title}`;
-            const text = `Your request "${request.title}" has been approved to status "${newStatus}".\n\nApprover Comment: ${comment || 'No comment provided.'}`;
+        if (request!.user?.email) {
+            const subject = `Request Approved: ${request!.title}`;
+            const text = `Your request "${request!.title}" has been approved to status "${newStatus}".\n\nApprover Comment: ${comment || 'No comment provided.'}`;
             const html = generateEmailHtml(
                 'Request Approved',
-                `Your request "<strong>${request.title}</strong>" has been approved to status "<strong>${newStatus}</strong>".<br><br><strong>Approver Comment:</strong> ${comment || 'No comment provided.'}`,
+                `Your request "<strong>${request!.title}</strong>" has been approved to status "<strong>${newStatus}</strong>".<br><br><strong>Approver Comment:</strong> ${comment || 'No comment provided.'}`,
                 `http://localhost:3000/requests/${requestId}`,
                 'View Request'
             );
-            await sendEmail(request.user.email, subject, text, html).catch(err => console.error('Failed to send email:', err));
+            await sendEmail(request!.user.email, subject, text, html).catch(err => console.error('Failed to send email:', err));
         }
 
         res.status(200).json({
@@ -142,10 +142,10 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
         }
 
         const allowedStatuses = [RequestStatus.SUBMITTED, RequestStatus.SEMI_APPROVED];
-        if (!allowedStatuses.includes(request.status as any)) {
+        if (!allowedStatuses.includes(request!.status as any)) {
             res.status(400).json({
                 success: false,
-                message: `Cannot reject request with status: ${request.status}. Only submitted or manager-approved requests can be rejected.`
+                message: `Cannot reject request with status: ${request!.status}. Only submitted or manager-approved requests can be rejected.`
             });
         }
 
@@ -168,16 +168,16 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
             include: getApprovalInclude()
         });
 
-        if (request.user?.email) {
-            const subject = `Request Rejected: ${request.title}`;
-            const text = `Your request "${request.title}" has been rejected.\n\nRejection Comment: ${comment || 'No comment provided.'}`;
+        if (request!.user?.email) {
+            const subject = `Request Rejected: ${request!.title}`;
+            const text = `Your request "${request!.title}" has been rejected.\n\nRejection Comment: ${comment || 'No comment provided.'}`;
             const html = generateEmailHtml(
                 'Request Rejected',
-                `Your request "<strong>${request.title}</strong>" has been rejected.<br><br><strong>Rejection Comment:</strong> ${comment || 'No comment provided.'}`,
+                `Your request "<strong>${request!.title}</strong>" has been rejected.<br><br><strong>Rejection Comment:</strong> ${comment || 'No comment provided.'}`,
                 `http://localhost:3000/requests/${requestId}`,
                 'View Request'
             );
-            await sendEmail(request.user.email, subject, text, html).catch(err => console.error('Failed to send email:', err));
+            await sendEmail(request!.user.email, subject, text, html).catch(err => console.error('Failed to send email:', err));
         }
 
         res.status(200).json({
