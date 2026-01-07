@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { RequestStatus } from '../types/request.interface';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
-import { getRequestInclude, getAdminFallback, attachAdminAsManager } from '../utils/queryHelpers';
+import { getRequestInclude, getAdminFallback } from '../utils/queryHelpers';
 
 export const createRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -15,13 +15,6 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
             estimatedCost,
             priority
         } = req.body;
-
-        if (!req.user.departmentId) {
-            res.status(400).json({
-                success: false,
-                message: 'You are not assigned to any department. Please contact admin.'
-            });
-        }
 
         const request = await prisma.request.create({
             data: {
@@ -66,7 +59,7 @@ export const getMyRequests = async (req: Request, res: Response, next: NextFunct
 
         const { page, limit, skip, take } = getPaginationParams(req.query);
 
-        const [total, requests, admin] = await Promise.all([
+        const [total, requests] = await Promise.all([
             prisma.request.count({ where: filter }),
             prisma.request.findMany({
                 where: filter,
@@ -74,16 +67,13 @@ export const getMyRequests = async (req: Request, res: Response, next: NextFunct
                 orderBy: { createdAt: 'desc' },
                 skip,
                 take
-            }),
-            getAdminFallback(prisma)
+            })
         ]);
-
-        const processedRequests = attachAdminAsManager(requests, admin);
 
         res.status(200).json({
             success: true,
             message: 'Requests retrieved successfully',
-            data: createPaginatedResponse(processedRequests, total, page, limit)
+            data: createPaginatedResponse(requests, total, page, limit)
         });
     } catch (error) {
         next(error);
@@ -96,12 +86,6 @@ export const getAllRequests = async (req: Request, res: Response, next: NextFunc
         const { role, departmentId } = req.user;
 
         if (role === 'MANAGER' || role === 'MANAGER') {
-            if (!departmentId) {
-                res.status(400).json({
-                    success: false,
-                    message: 'Manager/Head has no assigned department.'
-                });
-            }
             filter.departmentId = departmentId;
         }
 
@@ -115,7 +99,7 @@ export const getAllRequests = async (req: Request, res: Response, next: NextFunc
 
         const { page, limit, skip, take } = getPaginationParams(req.query);
 
-        const [total, requests, admin] = await Promise.all([
+        const [total, requests] = await Promise.all([
             prisma.request.count({ where: filter }),
             prisma.request.findMany({
                 where: filter,
@@ -123,16 +107,13 @@ export const getAllRequests = async (req: Request, res: Response, next: NextFunc
                 orderBy: { createdAt: 'desc' },
                 skip,
                 take
-            }),
-            getAdminFallback(prisma)
+            })
         ]);
-
-        const processedRequests = attachAdminAsManager(requests, admin);
 
         res.status(200).json({
             success: true,
             message: 'Requests retrieved successfully',
-            data: createPaginatedResponse(processedRequests, total, page, limit)
+            data: createPaginatedResponse(requests, total, page, limit)
         });
     } catch (error) {
         next(error);

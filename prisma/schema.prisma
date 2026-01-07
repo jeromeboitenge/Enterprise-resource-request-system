@@ -45,7 +45,7 @@ model User {
   email               String    @unique @db.VarChar(255)
   password            String    @db.VarChar(255)
   role                UserRole  @default(EMPLOYEE)
-  departmentId        String?   @map("department_id")
+  departmentId        String    @map("department_id")
   isActive            Boolean   @default(true) @map("is_active")
   failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
   accountLockedUntil  DateTime? @map("account_locked_until")
@@ -60,7 +60,7 @@ model User {
   deletedAt DateTime? @map("deleted_at")
 
   // Relations
-  department         Department?    @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  department         Department     @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   managedDepartments Department[]   @relation("DepartmentManager")
   requests           Request[]
   approvals          Approval[]
@@ -80,12 +80,12 @@ model Department {
   name        String    @unique @db.VarChar(100)
   code        String?   @unique @db.VarChar(50)
   description String?   @db.Text
-  managerId   String?   @map("manager_id")
+  managerId   String    @map("manager_id")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
 
-  manager  User?     @relation("DepartmentManager", fields: [managerId], references: [id], onDelete: SetNull)
+  manager  User      @relation("DepartmentManager", fields: [managerId], references: [id], onDelete: Restrict)
   users    User[]
   requests Request[]
 
@@ -156,6 +156,7 @@ model Payment {
 
   @@index([financeOfficerId])
   @@index([paymentDate])
+  @@index([paymentMethod])
   @@map("payments")
 }
 
@@ -173,5 +174,6 @@ model Notification {
   @@index([userId])
   @@index([isRead])
   @@index([userId, isRead])
+  @@index([userId, createdAt])
   @@map("notifications")
 }

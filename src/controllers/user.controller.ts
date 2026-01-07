@@ -25,6 +25,16 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
         const [users, total] = await Promise.all([
             prisma.user.findMany({
                 where: filter,
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    departmentId: true,
+                    isActive: true,
+                    createdAt: true,
+                    updatedAt: true
+                },
                 orderBy: { createdAt: 'desc' },
                 skip,
                 take
@@ -32,13 +42,8 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
             prisma.user.count({ where: filter })
         ]);
 
-        const usersWithoutPassword = users.map(user => {
-            const { password, ...rest } = user;
-            return rest;
-        });
-
         const paginatedResponse = createPaginatedResponse(
-            usersWithoutPassword,
+            users,
             total,
             page,
             limit
@@ -57,7 +62,17 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
 export const getUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const user = await prisma.user.findUnique({
-            where: { id: req.params.id }
+            where: { id: req.params.id },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                departmentId: true,
+                isActive: true,
+                createdAt: true,
+                updatedAt: true
+            }
         });
 
         if (!user) {
@@ -68,12 +83,10 @@ export const getUser = async (req: Request, res: Response, next: NextFunction): 
             return;
         }
 
-        const { password, ...userWithoutPassword } = user;
-
         res.status(200).json({
             success: true,
             message: 'User retrieved successfully',
-            data: { user: userWithoutPassword }
+            data: { user }
         });
     } catch (error) {
         next(error);

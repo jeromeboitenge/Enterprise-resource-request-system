@@ -45,18 +45,13 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
                 return;
             }
         } else if (role === 'ADMIN') {
-            const isManagerless = !request.department.managerId;
-            const allowedStatuses = isManagerless
-                ? [RequestStatus.SUBMITTED, RequestStatus.SEMI_APPROVED, RequestStatus.DRAFT]
-                : [RequestStatus.SEMI_APPROVED];
-
-            if (!allowedStatuses.includes(request!.status as any)) {
+            // Admin can only approve SEMI_APPROVED requests (already approved by manager)
+            if (request!.status !== RequestStatus.SEMI_APPROVED) {
                 res.status(400).json({
                     success: false,
-                    message: isManagerless
-                        ? `Request status is ${request!.status}. Admin acting as manager can approve draft, submitted or manager-approved requests.`
-                        : `Request status is ${request!.status}. Admin can only approve requests already approved by a manager.`
+                    message: `Request status is ${request!.status}. Admin can only approve requests already approved by a manager.`
                 });
+                return;
             }
         } else {
             res.status(403).json({
@@ -75,9 +70,7 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
         });
 
         let newStatus = RequestStatus.APPROVED;
-        if (role === 'MANAGER' || role === 'MANAGER') {
-            newStatus = RequestStatus.SEMI_APPROVED;
-        } else if (role === 'ADMIN' && (request!.status === RequestStatus.SUBMITTED || request!.status === RequestStatus.DRAFT)) {
+        if (role === 'MANAGER') {
             newStatus = RequestStatus.SEMI_APPROVED;
         }
 
@@ -251,14 +244,9 @@ export const getPendingApprovals = async (req: Request, res: Response, next: Nex
                 departmentId: departmentId
             };
         } else if (role === 'ADMIN') {
+            // Admin approves requests that are already manager-approved
             filter = {
-                OR: [
-                    { status: RequestStatus.SEMI_APPROVED },
-                    {
-                        status: RequestStatus.SUBMITTED,
-                        department: { managerId: null }
-                    }
-                ]
+                status: RequestStatus.SEMI_APPROVED
             };
         } else {
             filter = { status: 'NEVER_MATCH' };

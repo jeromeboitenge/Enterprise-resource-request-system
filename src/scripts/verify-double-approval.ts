@@ -71,9 +71,9 @@ async function main() {
         console.log(`M2 Result: ${resM2.statusCode} - ${resM2.body?.message}`); // Expect 400
 
         if (resM1.statusCode === 200 && resM2.statusCode === 400) {
-            console.log('✅ Manager prevented from double approval.');
+            console.log('Manager prevented from double approval.');
         } else {
-            console.error('❌ Manager double approval check failed.');
+            console.error(' Manager double approval check failed.');
         }
 
         // Test 2: Admin Double Approval (on Approved request)
@@ -97,9 +97,9 @@ async function main() {
         console.log(`A2 Result: ${resA2.statusCode} - ${resA2.body?.message}`); // Expect 400
 
         if (resA1.statusCode === 200 && resA2.statusCode === 400) {
-            console.log('✅ Admin prevented from double approving finalized request.');
+            console.log('Admin prevented from double approving finalized request.');
         } else {
-            console.error('❌ Admin final double approval check failed.');
+            console.error(' Admin final double approval check failed.');
         }
 
     } catch (e) {

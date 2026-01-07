@@ -103,6 +103,7 @@ export const getRequestInclude = (includeUser = true, includeDepartment = true) 
     if (includeUser) {
         include.user = {
             select: {
+                id: true,
                 name: true,
                 email: true,
                 role: true
@@ -113,9 +114,15 @@ export const getRequestInclude = (includeUser = true, includeDepartment = true) 
     if (includeDepartment) {
         include.department = {
             select: {
+                id: true,
                 name: true,
                 code: true,
-                manager: { select: { name: true } }
+                manager: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                }
             }
         };
     }
@@ -126,6 +133,7 @@ export const getRequestInclude = (includeUser = true, includeDepartment = true) 
 export const getApprovalInclude = () => ({
     approver: {
         select: {
+            id: true,
             name: true,
             email: true,
             role: true
@@ -133,6 +141,7 @@ export const getApprovalInclude = () => ({
     },
     request: {
         select: {
+            id: true,
             title: true,
             resourceName: true,
             status: true
@@ -143,6 +152,7 @@ export const getApprovalInclude = () => ({
 export const getPaymentInclude = () => ({
     financeOfficer: {
         select: {
+            id: true,
             name: true,
             email: true,
             role: true
@@ -150,11 +160,14 @@ export const getPaymentInclude = () => ({
     },
     request: {
         select: {
+            id: true,
             title: true,
             resourceName: true,
             estimatedCost: true,
+            status: true,
             user: {
                 select: {
+                    id: true,
                     name: true,
                     email: true
                 }
