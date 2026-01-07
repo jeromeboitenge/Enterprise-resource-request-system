@@ -22,24 +22,27 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
         if (!request) {
             res.status(404).json({
                 success: false,
-                message: 'Request not found'
+                message: `Request with ID ${req.params.requestId} not found`
             });
+            return;
         }
 
         const { role, departmentId } = req.user;
-        if ((role === 'MANAGER' || role === 'MANAGER') && request.departmentId !== departmentId) {
+        if (role === 'MANAGER' && request!.departmentId !== departmentId) {
             res.status(403).json({
                 success: false,
                 message: 'You can only approve requests from your own department'
             });
+            return;
         }
 
-        if (role === 'MANAGER' || role === 'MANAGER') {
+        if (role === 'MANAGER') {
             if (request.status !== RequestStatus.SUBMITTED && request.status !== RequestStatus.DRAFT) {
                 res.status(400).json({
                     success: false,
                     message: `Request has already been ${request!.status}. You can only approve draft or submitted requests.`
                 });
+                return;
             }
         } else if (role === 'ADMIN') {
             const isManagerless = !request.department.managerId;
