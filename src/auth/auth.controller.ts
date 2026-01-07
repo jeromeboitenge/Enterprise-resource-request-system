@@ -78,7 +78,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             });
         }
 
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+        const isPasswordValid = await bcrypt.compare(password, user!.password);
 
         if (!isPasswordValid) {
             res.status(401).json({
@@ -100,7 +100,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
         await prisma.user.update({
-            where: { id: user.id },
+            where: { id: user!.id },
             data: {
                 otpHash: otp,
                 otpExpiresAt
@@ -142,7 +142,7 @@ export const verifyLogin = async (req: Request, res: Response, next: NextFunctio
             });
         }
 
-        if (user.otpHash !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+        if (user!.otpHash !== otp || !user.otpExpiresAt || user!.otpExpiresAt < new Date()) {
             res.status(400).json({
                 success: false,
                 message: 'Invalid or expired OTP'
@@ -151,7 +151,7 @@ export const verifyLogin = async (req: Request, res: Response, next: NextFunctio
 
 
         await prisma.user.update({
-            where: { id: user.id },
+            where: { id: user!.id },
             data: {
                 otpHash: null,
                 otpExpiresAt: null
@@ -192,7 +192,7 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
 
         const {
             password,
-            otpVerified,
+            otpHash,
             otpHash,
             otpExpiresAt,
             ...userWithoutPassword
@@ -252,7 +252,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+        const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user!.password);
         if (!isCurrentPasswordValid) {
             res.status(401).json({
                 success: false,
@@ -260,7 +260,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        const isSamePassword = await bcrypt.compare(newPassword, user.password);
+        const isSamePassword = await bcrypt.compare(newPassword, user!.password);
         if (isSamePassword) {
             res.status(400).json({
                 success: false,
@@ -274,7 +274,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
             const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
             await prisma.user.update({
-                where: { id: user.id },
+                where: { id: user!.id },
                 data: {
                     otpHash: newOtp,
                     otpExpiresAt
@@ -282,7 +282,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
             });
 
             await sendEmail(
-                user.email,
+                user!.email,
                 'Password Change Verification',
                 `Your OTP for password change is: ${newOtp}`,
                 generateEmailHtml('Password Change', `Please use the code below to verify your password change:<br><br><div class="highlight-box">${newOtp}</div><br>This code will expire in 10 minutes.`)
@@ -296,7 +296,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
         }
 
 
-        if (user.otpHash !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+        if (user!.otpHash !== otp || !user.otpExpiresAt || user!.otpExpiresAt < new Date()) {
             res.status(400).json({
                 success: false,
                 message: 'Invalid or expired OTP'
@@ -307,7 +307,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
         const hashedPassword = await bcrypt.hash(newPassword, 12);
 
         await prisma.user.update({
-            where: { id: user.id },
+            where: { id: user!.id },
             data: {
                 password: hashedPassword,
                 otpHash: null,
@@ -342,7 +342,7 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
         const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
         await prisma.user.update({
-            where: { id: user.id },
+            where: { id: user!.id },
             data: {
                 otpHash: otp,
                 otpExpiresAt,
@@ -379,7 +379,7 @@ export const verifyResetOtp = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        if (user.otpHash !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+        if (user!.otpHash !== otp || !user.otpExpiresAt || user!.otpExpiresAt < new Date()) {
             res.status(400).json({
                 success: false,
                 message: 'Invalid or expired OTP'
@@ -388,7 +388,7 @@ export const verifyResetOtp = async (req: Request, res: Response, next: NextFunc
 
 
         await prisma.user.update({
-            where: { id: user.id },
+            where: { id: user!.id },
             data: { otpVerified: true }
         });
 
@@ -415,7 +415,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
         }
 
 
-        if (!user.otpVerified) {
+        if (!user!.otpVerified) {
             res.status(400).json({
                 success: false,
                 message: 'Please verify OTP first'
@@ -423,14 +423,14 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
         }
 
 
-        if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+        if (!user.otpExpiresAt || user!.otpExpiresAt < new Date()) {
             res.status(400).json({
                 success: false,
                 message: 'OTP Session expired. Please start over.'
             });
         }
 
-        const isSamePassword = await bcrypt.compare(newPassword, user.password);
+        const isSamePassword = await bcrypt.compare(newPassword, user!.password);
         if (isSamePassword) {
             res.status(400).json({
                 success: false,
@@ -441,7 +441,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
         const hashedPassword = await bcrypt.hash(newPassword, 12);
 
         await prisma.user.update({
-            where: { id: user.id },
+            where: { id: user!.id },
             data: {
                 password: hashedPassword,
                 otpHash: null,
