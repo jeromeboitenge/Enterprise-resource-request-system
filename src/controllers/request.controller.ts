@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { RequestStatus } from '../types/request.interface';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
+import { getRequestInclude, getAdminFallback, attachAdminAsManager } from '../utils/queryHelpers';
 
 export const createRequest = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -33,25 +34,13 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
                 quantity,
                 estimatedCost,
                 priority,
-                status: RequestStatus.Submitted
+                status: RequestStatus.SUBMITTED
             },
-            include: {
-                user: { select: { name: true, email: true, role: true } },
-                department: {
-                    select: {
-                        name: true,
-                        code: true,
-                        manager: { select: { name: true } }
-                    }
-                }
-            }
+            include: getRequestInclude()
         });
 
-        if (!request.department.manager) {
-            const admin = await prisma.user.findFirst({
-                where: { role: 'admin' },
-                select: { name: true }
-            });
+        if (!(request.department as any).manager) {
+            const admin = await getAdminFallback(prisma);
             if (admin && request.department) {
                 (request.department as any).manager = { name: admin.name };
             }
@@ -77,46 +66,24 @@ export const getMyRequests = async (req: Request, res: Response, next: NextFunct
 
         const { page, limit, skip, take } = getPaginationParams(req.query);
 
-        const [total, requests] = await Promise.all([
+        const [total, requests, admin] = await Promise.all([
             prisma.request.count({ where: filter }),
             prisma.request.findMany({
                 where: filter,
-                include: {
-                    user: { select: { name: true, email: true, role: true } },
-                    department: {
-                        select: {
-                            name: true,
-                            code: true,
-                            manager: { select: { name: true } }
-                        }
-                    }
-                },
+                include: getRequestInclude(),
                 orderBy: { createdAt: 'desc' },
                 skip,
                 take
-            })
+            }),
+            getAdminFallback(prisma)
         ]);
 
-        const hasMissingManager = requests.some((r: any) => !r.department?.manager);
-        if (hasMissingManager) {
-            const admin = await prisma.user.findFirst({
-                where: { role: 'admin' },
-                select: { name: true }
-            });
-
-            if (admin) {
-                requests.forEach((r: any) => {
-                    if (r.department && !r.department.manager) {
-                        (r.department as any).manager = { name: admin.name };
-                    }
-                });
-            }
-        }
+        const processedRequests = attachAdminAsManager(requests, admin);
 
         res.status(200).json({
             success: true,
             message: 'Requests retrieved successfully',
-            data: createPaginatedResponse(requests, total, page, limit)
+            data: createPaginatedResponse(processedRequests, total, page, limit)
         });
     } catch (error) {
         next(error);
@@ -128,7 +95,7 @@ export const getAllRequests = async (req: Request, res: Response, next: NextFunc
         const filter: any = {};
         const { role, departmentId } = req.user;
 
-        if (role === 'manager' || role === 'departmenthead') {
+        if (role === 'MANAGER' || role === 'MANAGER') {
             if (!departmentId) {
                 return res.status(400).json({
                     success: false,
@@ -148,46 +115,24 @@ export const getAllRequests = async (req: Request, res: Response, next: NextFunc
 
         const { page, limit, skip, take } = getPaginationParams(req.query);
 
-        const [total, requests] = await Promise.all([
+        const [total, requests, admin] = await Promise.all([
             prisma.request.count({ where: filter }),
             prisma.request.findMany({
                 where: filter,
-                include: {
-                    user: { select: { name: true, email: true, role: true, department: true } },
-                    department: {
-                        select: {
-                            name: true,
-                            code: true,
-                            manager: { select: { name: true } }
-                        }
-                    }
-                },
+                include: getRequestInclude(),
                 orderBy: { createdAt: 'desc' },
                 skip,
                 take
-            })
+            }),
+            getAdminFallback(prisma)
         ]);
 
-        const hasMissingManager = requests.some((r: any) => !r.department?.manager);
-        if (hasMissingManager) {
-            const admin = await prisma.user.findFirst({
-                where: { role: 'admin' },
-                select: { name: true }
-            });
-
-            if (admin) {
-                requests.forEach((r: any) => {
-                    if (r.department && !r.department.manager) {
-                        (r.department as any).manager = { name: admin.name };
-                    }
-                });
-            }
-        }
+        const processedRequests = attachAdminAsManager(requests, admin);
 
         res.status(200).json({
             success: true,
             message: 'Requests retrieved successfully',
-            data: createPaginatedResponse(requests, total, page, limit)
+            data: createPaginatedResponse(processedRequests, total, page, limit)
         });
     } catch (error) {
         next(error);
@@ -196,28 +141,16 @@ export const getAllRequests = async (req: Request, res: Response, next: NextFunc
 
 export const getRequest = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const request = await prisma.request.findUnique({
-            where: { id: req.params.id },
-            include: {
-                user: { select: { name: true, email: true, role: true, department: true } },
-                department: {
-                    select: {
-                        name: true,
-                        code: true,
-                        manager: { select: { name: true } }
-                    }
-                }
-            }
-        });
+        const [request, admin] = await Promise.all([
+            prisma.request.findUnique({
+                where: { id: req.params.id },
+                include: getRequestInclude()
+            }),
+            getAdminFallback(prisma)
+        ]);
 
-        if (request && !request.department.manager) {
-            const admin = await prisma.user.findFirst({
-                where: { role: 'admin' },
-                select: { name: true }
-            });
-            if (admin && request.department) {
-                (request.department as any).manager = { name: admin.name };
-            }
+        if (request && !(request.department as any).manager && admin) {
+            (request.department as any).manager = { name: admin.name };
         }
 
         if (!request) {
@@ -229,9 +162,9 @@ export const getRequest = async (req: Request, res: Response, next: NextFunction
 
 
         const isOwner = request.userId === req.user.id;
-        const isManagerOfDept = (req.user.role === 'manager' || req.user.role === 'departmenthead') &&
+        const isManagerOfDept = (req.user.role === 'MANAGER' || req.user.role === 'MANAGER') &&
             request.departmentId === req.user.departmentId;
-        const isAdmin = req.user.role === 'admin';
+        const isAdmin = req.user.role === 'ADMIN';
         const isFinance = req.user.role === 'finance';
 
         if (!isOwner && !isManagerOfDept && !isAdmin && !isFinance) {
@@ -276,9 +209,9 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
 
 
         const isOwner = existingRequest.userId === req.user.id;
-        const isManagerOfDept = (req.user.role === 'manager' || req.user.role === 'departmenthead') &&
+        const isManagerOfDept = (req.user.role === 'MANAGER' || req.user.role === 'MANAGER') &&
             existingRequest.departmentId === req.user.departmentId;
-        const isAdmin = req.user.role === 'admin';
+        const isAdmin = req.user.role === 'ADMIN';
 
         if (!isOwner && !isManagerOfDept && !isAdmin) {
             return res.status(403).json({
@@ -287,7 +220,7 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        const allowedStatuses = [RequestStatus.Draft, RequestStatus.Submitted, RequestStatus.Rejected];
+        const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.SUBMITTED, RequestStatus.REJECTED];
         if (!allowedStatuses.includes(existingRequest.status as any)) {
             return res.status(400).json({
                 success: false,
@@ -298,7 +231,7 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
 
         let dataToUpdate: any = {};
 
-        if (existingRequest.status === RequestStatus.Submitted) {
+        if (existingRequest.status === RequestStatus.SUBMITTED) {
             if (description !== undefined) dataToUpdate.description = description;
 
 
@@ -354,9 +287,9 @@ export const deleteRequest = async (req: Request, res: Response, next: NextFunct
         }
 
         const isOwner = existingRequest.userId === req.user.id;
-        const isManagerOfDept = (req.user.role === 'manager' || req.user.role === 'departmenthead') &&
+        const isManagerOfDept = (req.user.role === 'MANAGER' || req.user.role === 'MANAGER') &&
             existingRequest.departmentId === req.user.departmentId;
-        const isAdmin = req.user.role === 'admin';
+        const isAdmin = req.user.role === 'ADMIN';
 
         if (!isOwner && !isManagerOfDept && !isAdmin) {
             return res.status(403).json({
@@ -365,7 +298,7 @@ export const deleteRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        const allowedStatuses = [RequestStatus.Draft, RequestStatus.Submitted, RequestStatus.Rejected];
+        const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.SUBMITTED, RequestStatus.REJECTED];
         if (!allowedStatuses.includes(existingRequest.status as any)) {
             return res.status(400).json({
                 success: false,
@@ -407,7 +340,7 @@ export const submitRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        const allowedStatuses = [RequestStatus.Draft, RequestStatus.Rejected];
+        const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.REJECTED];
         if (!allowedStatuses.includes(existingRequest.status as any)) {
             return res.status(400).json({
                 success: false,
@@ -417,7 +350,7 @@ export const submitRequest = async (req: Request, res: Response, next: NextFunct
 
         const request = await prisma.request.update({
             where: { id: req.params.id },
-            data: { status: RequestStatus.Submitted },
+            data: { status: RequestStatus.SUBMITTED },
             include: {
                 user: { select: { name: true, email: true, role: true } },
                 department: { select: { name: true } }
@@ -454,7 +387,7 @@ export const cancelRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        const allowedStatuses = [RequestStatus.Draft, RequestStatus.Submitted, RequestStatus.UnderReview];
+        const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.SUBMITTED, RequestStatus.SEMI_APPROVED];
         if (!allowedStatuses.includes(existingRequest.status as any)) {
             return res.status(400).json({
                 success: false,
@@ -464,7 +397,7 @@ export const cancelRequest = async (req: Request, res: Response, next: NextFunct
 
         const request = await prisma.request.update({
             where: { id: req.params.id },
-            data: { status: RequestStatus.Cancelled },
+            data: { status: RequestStatus.REJECTED },
             include: {
                 user: { select: { name: true, email: true, role: true } },
                 department: { select: { name: true } }
@@ -500,10 +433,7 @@ export const getDepartmentRequests = async (req: Request, res: Response, next: N
             prisma.request.count({ where: filter }),
             prisma.request.findMany({
                 where: filter,
-                include: {
-                    user: { select: { name: true, email: true, role: true } },
-                    department: { select: { name: true } }
-                },
+                include: getRequestInclude(),
                 orderBy: { createdAt: 'desc' },
                 skip,
                 take

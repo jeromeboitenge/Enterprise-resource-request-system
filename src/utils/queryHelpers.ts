@@ -72,3 +72,94 @@ export const buildSortOptions = (
 export const mergeFilters = (...filters: Record<string, any>[]): Record<string, any> => {
     return Object.assign({}, ...filters);
 };
+
+export const getAdminFallback = async (prisma: any) => {
+    return await prisma.user.findFirst({
+        where: { role: 'ADMIN' },
+        select: { name: true }
+    });
+};
+
+export const attachAdminAsManager = (items: any[], admin: { name: string } | null) => {
+    if (!admin) return items;
+
+    return items.map(item => {
+        if (item.department && !item.department.manager) {
+            return {
+                ...item,
+                department: {
+                    ...item.department,
+                    manager: { name: admin.name }
+                }
+            };
+        }
+        return item;
+    });
+};
+
+export const getRequestInclude = (includeUser = true, includeDepartment = true) => {
+    const include: any = {};
+
+    if (includeUser) {
+        include.user = {
+            select: {
+                name: true,
+                email: true,
+                role: true
+            }
+        };
+    }
+
+    if (includeDepartment) {
+        include.department = {
+            select: {
+                name: true,
+                code: true,
+                manager: { select: { name: true } }
+            }
+        };
+    }
+
+    return include;
+};
+
+export const getApprovalInclude = () => ({
+    approver: {
+        select: {
+            name: true,
+            email: true,
+            role: true
+        }
+    },
+    request: {
+        select: {
+            title: true,
+            resourceName: true,
+            status: true
+        }
+    }
+});
+
+export const getPaymentInclude = () => ({
+    financeOfficer: {
+        select: {
+            name: true,
+            email: true,
+            role: true
+        }
+    },
+    request: {
+        select: {
+            title: true,
+            resourceName: true,
+            estimatedCost: true,
+            user: {
+                select: {
+                    name: true,
+                    email: true
+                }
+            }
+        }
+    }
+});
+

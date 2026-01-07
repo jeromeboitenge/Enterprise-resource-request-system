@@ -27,13 +27,13 @@ async function main() {
         data: { name: `DA-Dept-${Date.now()}`, code: `DA-${Date.now()}` }
     });
     const user = await prisma.user.create({
-        data: { name: 'User DA', email: `u-da-${Date.now()}@ex.com`, password: 'pwd', role: 'employee', departmentId: dept.id }
+        data: { name: 'User DA', email: `u-da-${Date.now()}@ex.com`, password: 'pwd', role: 'EMPLOYEE', departmentId: dept.id }
     });
     const manager = await prisma.user.create({
-        data: { name: 'Mgr DA', email: `m-da-${Date.now()}@ex.com`, password: 'pwd', role: 'manager', departmentId: dept.id }
+        data: { name: 'Mgr DA', email: `m-da-${Date.now()}@ex.com`, password: 'pwd', role: 'MANAGER', departmentId: dept.id }
     });
     const admin = await prisma.user.create({
-        data: { name: 'Adm DA', email: `a-da-${Date.now()}@ex.com`, password: 'pwd', role: 'admin' }
+        data: { name: 'Adm DA', email: `a-da-${Date.now()}@ex.com`, password: 'pwd', role: 'ADMIN' }
     });
 
     try {
@@ -48,7 +48,7 @@ async function main() {
                 resourceType: 'T1',
                 quantity: 1,
                 estimatedCost: 100,
-                status: RequestStatus.Submitted
+                status: RequestStatus.SUBMITTED
             }
         });
 

@@ -2,6 +2,7 @@ import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import swaggerUi from "swagger-ui-express";
 import "dotenv/config";
 
 import { config } from "./config";
@@ -13,6 +14,7 @@ import { sanitizeInput, customSanitize } from "./middleware/sanitize.middleware"
 import { requestIdMiddleware } from "./middleware/request-id.middleware";
 import logger from "./utils/logger";
 import prisma from './lib/prisma';
+import { swaggerSpec } from "./config/swagger";
 
 try {
     validateEnv();
@@ -31,7 +33,7 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
             scriptSrc: ["'self'", "'unsafe-inline'"],
-            imgSrc: ["'self'", "data:", "https:"],
+            imgSrc: ["'self'", "data:", "https:", "validator.swagger.io"],
         }
     },
     hsts: {
@@ -69,10 +71,11 @@ app.get("/", (req: Request, res: Response) => {
         message: "Enterprise Resource Request System API",
         version: "1.0.0",
         status: "running",
+        documentation: "/api-docs",
     });
 });
 
-
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use(config.prefix, mainRouter);
 
@@ -84,18 +87,14 @@ const startServer = async () => {
     try {
 
         await prisma.$connect();
-        logger.info('✅ Connected to PostgreSQL via Prisma');
+        logger.info(' Database connected sucessfully');
 
         app.listen(config.port, () => {
-            logger.info(`🚀 Server running on port ${config.port}`);
-            logger.info(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-            logger.info(`🔒 CORS Origins: ${corsOrigins.join(', ')}`);
-            logger.info(`🛡️  Security: Helmet, Rate Limiting, Input Sanitization enabled`);
-            logger.info(`📊 Request ID tracking enabled`);
+            logger.info(`Server running on port ${config.port}`);
 
         });
     } catch (error) {
-        logger.error("❌ Server failed to start:", error);
+        logger.error("Server failed to start:", error);
         process.exit(1);
     }
 };

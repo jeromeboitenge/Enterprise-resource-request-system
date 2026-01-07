@@ -13,7 +13,7 @@ import {
 import { authenticate } from '../auth/auth.middleware';
 import { authorize } from '../auth/authorize.middleware';
 import { validate } from '../middleware/validate';
-import { createRequestSchema, updateRequestSchema } from '../schema/request.validation';
+import { createRequestSchema, updateRequestSchema } from '../validator/request.validation';
 import { Roles } from '../types/user.interface';
 
 const router = Router();
@@ -27,12 +27,12 @@ router.post('/', validate(createRequestSchema), createRequest);
 router.get('/my', getMyRequests);
 
 
-router.get('/department', authorize(Roles.DepartmentHead, Roles.Admin), getDepartmentRequests);
+router.get('/department', authorize(Roles.MANAGER, Roles.ADMIN), getDepartmentRequests);
 
 
 router.get(
     '/',
-    authorize(Roles.Manager, Roles.Finance, Roles.Admin),
+    authorize(Roles.MANAGER, Roles.ADMIN),
     getAllRequests
 );
 

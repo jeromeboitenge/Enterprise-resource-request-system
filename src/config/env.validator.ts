@@ -38,5 +38,5 @@ export const validateEnv = (): void => {
         );
     }
 
-    logger.info(' Environment variables validated successfully');
+    logger.info(' Environment variables validation successfully');
 };

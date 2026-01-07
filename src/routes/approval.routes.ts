@@ -8,7 +8,7 @@ import {
 import { authenticate } from '../auth/auth.middleware';
 import { authorize } from '../auth/authorize.middleware';
 import { validate } from '../middleware/validate';
-import { approvalDecisionSchema } from '../schema/approval.validation';
+import { approvalDecisionSchema } from '../validator/approval.validation';
 import { Roles } from '../types/user.interface';
 
 const router = Router();
@@ -16,12 +16,12 @@ const router = Router();
 router.use(authenticate);
 
 
-router.get('/pending', authorize(Roles.Manager, Roles.DepartmentHead, Roles.Admin), getPendingApprovals);
+router.get('/pending', authorize(Roles.MANAGER, Roles.ADMIN), getPendingApprovals);
 
 
 router.post(
     '/:requestId/approve',
-    authorize(Roles.Manager, Roles.Admin),
+    authorize(Roles.MANAGER, Roles.ADMIN),
     validate(approvalDecisionSchema),
     approveRequest
 );
@@ -29,7 +29,7 @@ router.post(
 
 router.post(
     '/:requestId/reject',
-    authorize(Roles.Manager, Roles.Admin),
+    authorize(Roles.MANAGER, Roles.ADMIN),
     validate(approvalDecisionSchema),
     rejectRequest
 );

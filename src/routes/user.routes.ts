@@ -14,7 +14,7 @@ import {
     createUserSchema,
     updateUserSchema,
     resetPasswordSchema
-} from '../schema/user.validation';
+} from '../validator/user.validation';
 
 const router = Router();
 

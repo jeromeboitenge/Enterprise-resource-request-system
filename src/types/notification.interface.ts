@@ -1,12 +1,8 @@
+// Updated to match Prisma schema
 export enum NotificationType {
-    REQUEST_SUBMITTED = 'request_submitted',
-    REQUEST_APPROVED = 'request_approved',
-    REQUEST_REJECTED = 'request_rejected',
-    APPROVAL_REQUIRED = 'approval_required',
-    PAYMENT_PROCESSED = 'payment_processed',
-    REQUEST_FUNDED = 'request_funded',
-    REQUEST_FULFILLED = 'request_fulfilled',
-    REQUEST_CANCELLED = 'request_cancelled'
+    INFO = 'INFO',
+    WARNING = 'WARNING',
+    ERROR = 'ERROR'
 }
 
 export interface NotificationInterface {

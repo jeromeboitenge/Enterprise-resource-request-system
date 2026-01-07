@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '../lib/prisma';
+import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 
 export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { role, isActive, department } = req.query;
+        const { page, limit, skip, take } = getPaginationParams(req.query);
 
         const filter: any = {};
 
@@ -20,23 +22,32 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
             filter.department = department as string;
         }
 
-        const users = await prisma.user.findMany({
-            where: filter,
-            orderBy: { createdAt: 'desc' }
-        });
+        const [users, total] = await Promise.all([
+            prisma.user.findMany({
+                where: filter,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take
+            }),
+            prisma.user.count({ where: filter })
+        ]);
 
         const usersWithoutPassword = users.map(user => {
             const { password, ...rest } = user;
             return rest;
         });
 
+        const paginatedResponse = createPaginatedResponse(
+            usersWithoutPassword,
+            total,
+            page,
+            limit
+        );
+
         res.status(200).json({
             success: true,
             message: 'Users retrieved successfully',
-            data: {
-                count: usersWithoutPassword.length,
-                users: usersWithoutPassword
-            }
+            data: paginatedResponse
         });
     } catch (error) {
         next(error);

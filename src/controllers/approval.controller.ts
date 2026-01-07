@@ -3,6 +3,8 @@ import prisma from '../lib/prisma';
 import { RequestStatus } from '../types/request.interface';
 import { sendEmail } from '../utils/email.service';
 import { generateEmailHtml } from '../utils/email.templates';
+import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
+import { getApprovalInclude } from '../utils/queryHelpers';
 
 export const approveRequest = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -25,25 +27,25 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
         }
 
         const { role, departmentId } = req.user;
-        if ((role === 'manager' || role === 'departmenthead') && request.departmentId !== departmentId) {
+        if ((role === 'MANAGER' || role === 'MANAGER') && request.departmentId !== departmentId) {
             return res.status(403).json({
                 success: false,
                 message: 'You can only approve requests from your own department'
             });
         }
 
-        if (role === 'manager' || role === 'departmenthead') {
-            if (request.status !== RequestStatus.Submitted && request.status !== RequestStatus.Draft) {
+        if (role === 'MANAGER' || role === 'MANAGER') {
+            if (request.status !== RequestStatus.SUBMITTED && request.status !== RequestStatus.DRAFT) {
                 return res.status(400).json({
                     success: false,
                     message: `Request has already been ${request.status}. You can only approve draft or submitted requests.`
                 });
             }
-        } else if (role === 'admin') {
+        } else if (role === 'ADMIN') {
             const isManagerless = !request.department.managerId;
             const allowedStatuses = isManagerless
-                ? [RequestStatus.Submitted, RequestStatus.ManagerApproved, RequestStatus.Draft]
-                : [RequestStatus.ManagerApproved];
+                ? [RequestStatus.SUBMITTED, RequestStatus.SEMI_APPROVED, RequestStatus.DRAFT]
+                : [RequestStatus.SEMI_APPROVED];
 
             if (!allowedStatuses.includes(request.status as any)) {
                 return res.status(400).json({
@@ -64,16 +66,16 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             data: {
                 requestId,
                 approverId: req.user.id,
-                decision: 'approved',
+                decision: 'APPROVED',
                 comment: comment || 'Approved'
             }
         });
 
-        let newStatus = RequestStatus.Approved;
-        if (role === 'manager' || role === 'departmenthead') {
-            newStatus = RequestStatus.ManagerApproved;
-        } else if (role === 'admin' && (request.status === RequestStatus.Submitted || request.status === RequestStatus.Draft)) {
-            newStatus = RequestStatus.ManagerApproved;
+        let newStatus = RequestStatus.APPROVED;
+        if (role === 'MANAGER' || role === 'MANAGER') {
+            newStatus = RequestStatus.SEMI_APPROVED;
+        } else if (role === 'ADMIN' && (request.status === RequestStatus.SUBMITTED || request.status === RequestStatus.DRAFT)) {
+            newStatus = RequestStatus.SEMI_APPROVED;
         }
 
         const updatedRequest = await prisma.request.update({
@@ -83,7 +85,7 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
 
         const approvalWithApprover = await prisma.approval.findUnique({
             where: { id: approval.id },
-            include: { approver: { select: { name: true, email: true, role: true } } }
+            include: getApprovalInclude()
         });
 
         if (request.user?.email) {
@@ -125,7 +127,7 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
         });
 
         const { role, departmentId } = req.user;
-        if ((role === 'manager' || role === 'departmenthead') && request?.departmentId !== departmentId) {
+        if ((role === 'MANAGER' || role === 'MANAGER') && request?.departmentId !== departmentId) {
             return res.status(403).json({
                 success: false,
                 message: 'You can only reject requests from your own department'
@@ -139,7 +141,7 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        const allowedStatuses = [RequestStatus.Submitted, RequestStatus.ManagerApproved];
+        const allowedStatuses = [RequestStatus.SUBMITTED, RequestStatus.SEMI_APPROVED];
         if (!allowedStatuses.includes(request.status as any)) {
             return res.status(400).json({
                 success: false,
@@ -151,19 +153,19 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
             data: {
                 requestId,
                 approverId: req.user.id,
-                decision: 'rejected',
+                decision: 'REJECTED',
                 comment: comment || 'Rejected'
             }
         });
 
         const updatedRequest = await prisma.request.update({
             where: { id: requestId },
-            data: { status: RequestStatus.Rejected }
+            data: { status: RequestStatus.REJECTED }
         });
 
         const approvalWithApprover = await prisma.approval.findUnique({
             where: { id: approval.id },
-            include: { approver: { select: { name: true, email: true, role: true } } }
+            include: getApprovalInclude()
         });
 
         if (request.user?.email) {
@@ -194,6 +196,7 @@ export const rejectRequest = async (req: Request, res: Response, next: NextFunct
 export const getApprovalHistory = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { requestId } = req.params;
+        const { page, limit, skip, take } = getPaginationParams(req.query);
 
         const request = await prisma.request.findUnique({ where: { id: requestId } });
         if (!request) {
@@ -203,21 +206,30 @@ export const getApprovalHistory = async (req: Request, res: Response, next: Next
             });
         }
 
-        const approvals = await prisma.approval.findMany({
-            where: { requestId },
-            include: {
-                approver: { select: { name: true, email: true, role: true } }
-            },
-            orderBy: { decisionDate: 'desc' }
-        });
+        const [approvals, total] = await Promise.all([
+            prisma.approval.findMany({
+                where: { requestId },
+                include: {
+                    approver: { select: { name: true, email: true, role: true } }
+                },
+                orderBy: { decisionDate: 'desc' },
+                skip,
+                take
+            }),
+            prisma.approval.count({ where: { requestId } })
+        ]);
+
+        const paginatedResponse = createPaginatedResponse(
+            approvals,
+            total,
+            page,
+            limit
+        );
 
         res.status(200).json({
             success: true,
             message: 'Approval history retrieved successfully',
-            data: {
-                count: approvals.length,
-                approvals
-            }
+            data: paginatedResponse
         });
     } catch (error) {
         next(error);
@@ -227,45 +239,53 @@ export const getApprovalHistory = async (req: Request, res: Response, next: Next
 export const getPendingApprovals = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { role, departmentId } = req.user;
+        const { page, limit, skip, take } = getPaginationParams(req.query);
         let filter: any = {};
 
-        if (role === 'manager' || role === 'departmenthead') {
+        if (role === 'MANAGER' || role === 'MANAGER') {
             filter = {
-                status: RequestStatus.Submitted,
+                status: RequestStatus.SUBMITTED,
                 departmentId: departmentId
             };
-        } else if (role === 'admin') {
+        } else if (role === 'ADMIN') {
             filter = {
                 OR: [
-                    { status: RequestStatus.ManagerApproved },
+                    { status: RequestStatus.SEMI_APPROVED },
                     {
-                        status: RequestStatus.Submitted,
+                        status: RequestStatus.SUBMITTED,
                         department: { managerId: null }
                     }
                 ]
             };
         } else {
-            filter = { status: 'NEVER_MATCH' }; // Prevent seeing anything if not approver
+            filter = { status: 'NEVER_MATCH' };
         }
 
-        const requests = await prisma.request.findMany({
-            where: filter,
-            include: {
-                user: { select: { name: true, email: true, role: true, department: true } },
-                department: { select: { name: true, managerId: true } }
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+        const [requests, total] = await Promise.all([
+            prisma.request.findMany({
+                where: filter,
+                include: {
+                    user: { select: { name: true, email: true, role: true, department: true } },
+                    department: { select: { name: true, managerId: true } }
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take
+            }),
+            prisma.request.count({ where: filter })
+        ]);
 
-
+        const paginatedResponse = createPaginatedResponse(
+            requests,
+            total,
+            page,
+            limit
+        );
 
         res.status(200).json({
             success: true,
             message: 'Pending approvals retrieved successfully',
-            data: {
-                count: requests.length,
-                requests
-            }
+            data: paginatedResponse
         });
     } catch (error) {
         next(error);

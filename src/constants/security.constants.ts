@@ -32,7 +32,7 @@ export const JWT_CONFIG = {
 
     DEFAULT_EXPIRES_IN: '1d',
 
-    REFRESH_TOKEN_EXPIRES_IN: '7d',
+    REFRESH_TOKEN_EXPIRES_IN: '1d',
 
     TOKEN_TYPE: 'Bearer',
 } as const;

@@ -1,7 +1,7 @@
+// Updated to match Prisma schema
 export enum ApprovalDecision {
-    Pending = 'pending',
-    Approved = 'approved',
-    Rejected = 'rejected'
+    APPROVED = 'APPROVED',
+    REJECTED = 'REJECTED'
 }
 
 export enum ApprovalLevel {

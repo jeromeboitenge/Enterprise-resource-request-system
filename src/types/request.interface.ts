@@ -1,20 +1,17 @@
+// Updated to match Prisma schema enums
 export enum RequestStatus {
-    Draft = 'draft',
-    Submitted = 'submitted',
-    ManagerApproved = 'manager_approved',
-    UnderReview = 'under_review',
-    Approved = 'approved',
-    Rejected = 'rejected',
-    Funded = 'funded',
-    Fulfilled = 'fulfilled',
-    Cancelled = 'cancelled'
+    DRAFT = 'DRAFT',
+    SUBMITTED = 'SUBMITTED',
+    SEMI_APPROVED = 'SEMI_APPROVED',
+    APPROVED = 'APPROVED',
+    REJECTED = 'REJECTED',
+    PAID = 'PAID'
 }
 
 export enum Priority {
-    Low = 'low',
-    Medium = 'medium',
-    High = 'high',
-    Urgent = 'urgent'
+    LOW = 'LOW',
+    MEDIUM = 'MEDIUM',
+    HIGH = 'HIGH'
 }
 
 export interface ResourceRequestInterface {

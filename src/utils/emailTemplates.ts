@@ -1,24 +1,24 @@
 
 export const getOtpTemplate = (otp: string, type: 'signup' | 'login' | 'password_reset'): string => {
-    let title = '';
-    let message = '';
+  let title = '';
+  let message = '';
 
-    switch (type) {
-        case 'signup':
-            title = 'Welcome to R2P!';
-            message = 'Thank you for registering. Please use the verification code below to activate your account.';
-            break;
-        case 'login':
-            title = 'Login Verify';
-            message = 'We detected a login attempt. Use the code below to complete your login.';
-            break;
-        case 'password_reset':
-            title = 'Password Change Request';
-            message = 'You requested to change your password. Use the code below to confirm this change.';
-            break;
-    }
+  switch (type) {
+    case 'signup':
+      title = 'Welcome to R2P!';
+      message = 'registeration sucessful. Please use the verification code below to activate your account.';
+      break;
+    case 'login':
+      title = 'Verify to Login';
+      message = 'We detected a login attempt at R2P. Use the code below to complete your login.';
+      break;
+    case 'password_reset':
+      title = 'Password Change Request';
+      message = 'You requested to change your password. Use the code below to confirm this change.';
+      break;
+  }
 
-    return `
+  return `
 <!DOCTYPE html>
 <html>
 <head>

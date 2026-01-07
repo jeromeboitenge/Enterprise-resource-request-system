@@ -31,14 +31,14 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
                 name,
                 email,
                 password: hashedPassword,
-                role: role || 'employee',
+                role: role || 'EMPLOYEE',
                 department: {
                     connectOrCreate: {
                         where: { name: userDepartment },
                         create: { name: userDepartment }
                     }
                 },
-                otpCode: otp,
+                otpHash: otp,
                 otpExpiresAt
             }
         });
@@ -102,7 +102,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         await prisma.user.update({
             where: { id: user.id },
             data: {
-                otpCode: otp,
+                otpHash: otp,
                 otpExpiresAt
             }
         });
@@ -142,7 +142,7 @@ export const verifyLogin = async (req: Request, res: Response, next: NextFunctio
             });
         }
 
-        if (user.otpCode !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+        if (user.otpHash !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid or expired OTP'
@@ -153,7 +153,7 @@ export const verifyLogin = async (req: Request, res: Response, next: NextFunctio
         await prisma.user.update({
             where: { id: user.id },
             data: {
-                otpCode: null,
+                otpHash: null,
                 otpExpiresAt: null
             }
         });
@@ -164,20 +164,10 @@ export const verifyLogin = async (req: Request, res: Response, next: NextFunctio
             { expiresIn: '1d' }
         );
 
-        const userResponse = {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            department: user.department?.name,
-            isActive: user.isActive
-        };
-
         res.status(200).json({
             success: true,
             message: 'Login verified successfully',
             data: {
-                user: userResponse,
                 token
             }
         });
@@ -286,7 +276,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
             await prisma.user.update({
                 where: { id: user.id },
                 data: {
-                    otpCode: newOtp,
+                    otpHash: newOtp,
                     otpExpiresAt
                 }
             });
@@ -306,7 +296,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
         }
 
 
-        if (user.otpCode !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+        if (user.otpHash !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid or expired OTP'
@@ -320,7 +310,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
             where: { id: user.id },
             data: {
                 password: hashedPassword,
-                otpCode: null,
+                otpHash: null,
                 otpExpiresAt: null
             }
         });
@@ -354,7 +344,7 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
         await prisma.user.update({
             where: { id: user.id },
             data: {
-                otpCode: otp,
+                otpHash: otp,
                 otpExpiresAt,
                 otpVerified: false
             }
@@ -389,7 +379,7 @@ export const verifyResetOtp = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        if (user.otpCode !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+        if (user.otpHash !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid or expired OTP'
@@ -454,7 +444,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
             where: { id: user.id },
             data: {
                 password: hashedPassword,
-                otpCode: null,
+                otpHash: null,
                 otpExpiresAt: null,
                 otpVerified: false
             }

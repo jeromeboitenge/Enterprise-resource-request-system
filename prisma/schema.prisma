@@ -7,82 +7,139 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum RequestStatus {
+  DRAFT
+  SUBMITTED
+  SEMI_APPROVED
+  APPROVED
+  REJECTED
+  PAID
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  ERROR
+}
+
 model User {
   id                  String    @id @default(uuid())
   name                String    @db.VarChar(100)
   email               String    @unique @db.VarChar(255)
   password            String    @db.VarChar(255)
-  role                String    @default("employee") @db.VarChar(50)
+  role                UserRole  @default(EMPLOYEE)
   departmentId        String?   @map("department_id")
   isActive            Boolean   @default(true) @map("is_active")
   failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
   accountLockedUntil  DateTime? @map("account_locked_until")
-  otpCode             String?   @map("otp_code")
-  otpExpiresAt        DateTime? @map("otp_expires_at")
-  otpVerified         Boolean   @default(false) @map("otp_verified")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  department         Department?    @relation(fields: [departmentId], references: [id])
+  // OTP (hashed)
+  otpHash      String?   @map("otp_hash")
+  otpExpiresAt DateTime? @map("otp_expires_at")
+  otpVerified  Boolean   @default(false) @map("otp_verified")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  department         Department?    @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   managedDepartments Department[]   @relation("DepartmentManager")
   requests           Request[]
   approvals          Approval[]
   processedPayments  Payment[]
   notifications      Notification[]
 
+  @@index([departmentId])
+  @@index([role])
+  @@index([isActive])
+  @@index([email])
+  @@index([role, isActive])
   @@map("users")
 }
 
 model Department {
-  id          String   @id @default(uuid())
-  name        String   @unique @db.VarChar(100)
-  code        String?  @unique @db.VarChar(50)
-  description String?  @db.Text
-  managerId   String?  @map("manager_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  id          String    @id @default(uuid())
+  name        String    @unique @db.VarChar(100)
+  code        String?   @unique @db.VarChar(50)
+  description String?   @db.Text
+  managerId   String?   @map("manager_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   manager  User?     @relation("DepartmentManager", fields: [managerId], references: [id], onDelete: SetNull)
   users    User[]
   requests Request[]
 
+  @@index([managerId])
   @@map("departments")
 }
 
 model Request {
-  id            String   @id @default(uuid())
-  userId        String   @map("user_id")
-  departmentId  String   @map("department_id")
-  title         String   @db.VarChar(255)
-  resourceName  String   @map("resource_name") @db.VarChar(255)
-  resourceType  String   @map("resource_type") @db.VarChar(100)
-  description   String?  @db.Text
+  id            String        @id @default(uuid())
+  userId        String        @map("user_id")
+  departmentId  String        @map("department_id")
+  title         String        @db.VarChar(255)
+  resourceName  String        @map("resource_name") @db.VarChar(255)
+  resourceType  String        @map("resource_type") @db.VarChar(100)
+  description   String?       @db.Text
   quantity      Int
-  estimatedCost Decimal  @map("estimated_cost") @db.Decimal(10, 2)
-  priority      String   @default("medium") @db.VarChar(20)
-  status        String   @default("draft") @db.VarChar(50)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+  estimatedCost Decimal       @map("estimated_cost") @db.Decimal(10, 2)
+  priority      Priority      @default(MEDIUM)
+  status        RequestStatus @default(DRAFT)
 
-  user       User       @relation(fields: [userId], references: [id])
-  department Department @relation(fields: [departmentId], references: [id])
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   approvals  Approval[]
   payment    Payment?
 
+  @@index([userId])
+  @@index([departmentId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId, status])
+  @@index([departmentId, status])
+  @@index([status, createdAt])
   @@map("requests")
 }
 
 model Approval {
-  id           String   @id @default(uuid())
-  requestId    String   @map("request_id")
-  approverId   String   @map("approver_id")
-  decision     String   @db.VarChar(20)
-  comment      String?  @db.Text
-  decisionDate DateTime @default(now()) @map("decision_date")
+  id           String           @id @default(uuid())
+  requestId    String           @map("request_id")
+  approverId   String           @map("approver_id")
+  decision     ApprovalDecision
+  comment      String?          @db.Text
+  decisionDate DateTime         @default(now()) @map("decision_date")
 
-  request  Request @relation(fields: [requestId], references: [id])
-  approver User    @relation(fields: [approverId], references: [id])
+  request  Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  approver User    @relation(fields: [approverId], references: [id], onDelete: Restrict)
 
+  @@index([requestId])
+  @@index([approverId])
+  @@index([decision])
   @@map("approvals")
 }
 
@@ -94,24 +151,27 @@ model Payment {
   paymentMethod    String   @map("payment_method") @db.VarChar(50)
   paymentDate      DateTime @default(now()) @map("payment_date")
 
-  // Relations
-  request        Request @relation(fields: [requestId], references: [id])
-  financeOfficer User    @relation(fields: [financeOfficerId], references: [id])
+  request        Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  financeOfficer User    @relation(fields: [financeOfficerId], references: [id], onDelete: Restrict)
 
+  @@index([financeOfficerId])
+  @@index([paymentDate])
   @@map("payments")
 }
 
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  title     String   @db.VarChar(255)
-  message   String   @db.Text
-  type      String   @default("info") @db.VarChar(50)
-  isRead    Boolean  @default(false) @map("is_read")
-  createdAt DateTime @default(now()) @map("created_at")
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  title     String           @db.VarChar(255)
+  message   String           @db.Text
+  type      NotificationType @default(INFO)
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
 
-  // Relations
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([isRead])
+  @@index([userId, isRead])
   @@map("notifications")
 }

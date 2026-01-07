@@ -12,10 +12,9 @@ export interface UserInterface {
     updatedAt?: Date;
 }
 
+// Updated to match Prisma UserRole schema
 export enum Roles {
-    Employee = 'employee',
-    Manager = 'manager',
-    DepartmentHead = 'departmenthead',
-    Finance = 'finance',
-    Admin = 'admin'
+    ADMIN = 'ADMIN',
+    MANAGER = 'MANAGER',
+    EMPLOYEE = 'EMPLOYEE'
 }
