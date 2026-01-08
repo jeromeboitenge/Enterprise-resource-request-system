@@ -2,9 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
-import { generateOTP } from '../utils/otp.utils';
 import { sendEmail } from '../utils/email.service';
 import { generateEmailHtml } from '../utils/email.templates';
+import { comparePassword, hashPassword, generateOTP } from '../utils/Security';
 
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
@@ -19,8 +19,6 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
             });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 12);
-
         const otp = generateOTP();
         const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
@@ -31,7 +29,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         if (!itDepartment) {
             res.status(500).json({
                 success: false,
-                message: 'IT department not found. Please contact administrator.'
+                message: 'Your department not found. Please contact administrator.'
             });
             return;
         }
@@ -40,7 +38,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
             data: {
                 name,
                 email,
-                password: hashedPassword,
+                password: hashPassword(password),
                 role: role || 'EMPLOYEE',
                 departmentId: itDepartment.id, // All users go to IT department
                 otpHash: otp,
@@ -83,9 +81,9 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             });
         }
 
-        const isPasswordValid = await bcrypt.compare(password, user!.password);
+        const passwordMatch = comparePassword(password, user!.password)
 
-        if (!isPasswordValid) {
+        if (!passwordMatch) {
             res.status(401).json({
                 success: false,
                 message: 'Invalid email or password'
@@ -441,13 +439,10 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
                 message: 'New password must be different from current password'
             });
         }
-
-        const hashedPassword = await bcrypt.hash(newPassword, 12);
-
         await prisma.user.update({
             where: { id: user!.id },
             data: {
-                password: hashedPassword,
+                password: hashPassword(newPassword),
                 otpHash: null,
                 otpExpiresAt: null,
                 otpVerified: false

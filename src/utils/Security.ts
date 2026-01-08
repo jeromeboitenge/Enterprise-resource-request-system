@@ -1,6 +1,38 @@
+import * as bcrypt from "bcryptjs"
+import { config } from "../config";
+import * as jwt from "jsonwebtoken";
+
+export const hashPassword = (password: string): string => {
+    return bcrypt.hashSync(password, 12)
+
+};
+export interface generateTokenPayload {
+    id: string,
+    role: string
+}
+export const comparePassword = async (
+    password: string, db_password: string): Promise<boolean> => {
+    return bcrypt.compare(password, db_password)
+}
+
+export const generateToken = async ({ id, role }: generateTokenPayload) => {
+    return jwt.sign(
+        {
+            sub: id,
+            role,
+        },
+        config.jwtSecret,
+        { expiresIn: "1hr" }
+    );
+};
+
+export const generateOTP = (): string => {
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    return otp;
+};
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
-import { JWT_CONFIG } from '../constants';
 
 interface TokenPayload {
     userId: string;
@@ -16,7 +48,7 @@ export const generateAuthToken = (userId: string, role: string): string => {
     return jwt.sign(
         payload,
         config.jwtSecret,
-        { expiresIn: JWT_CONFIG.DEFAULT_EXPIRES_IN }
+        { expiresIn: '1d' } // 1 day expiration
     );
 };
 
@@ -38,3 +70,4 @@ export const generateTokenPair = (userId: string, role: string) => {
 export const verifyToken = (token: string): TokenPayload => {
     return jwt.verify(token, config.jwtSecret) as TokenPayload;
 };
+
