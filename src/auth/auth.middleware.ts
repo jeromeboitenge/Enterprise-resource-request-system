@@ -20,8 +20,6 @@ export const authenticate = async (
         }
         const token = authHeader.split(' ')[1];
         const decoded = verifyToken(token);
-
-        // 4. Fetch user from database
         const user = await prisma.user.findUnique({
             where: { id: decoded.userId },
             select: {
