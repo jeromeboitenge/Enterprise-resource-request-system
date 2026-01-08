@@ -50,8 +50,6 @@ export const authenticate = async (
             });
             return;
         }
-
-        // 7. Check if account is locked
         if (user.accountLockedUntil && user.accountLockedUntil > new Date()) {
             const lockTimeRemaining = Math.ceil((user.accountLockedUntil.getTime() - Date.now()) / 60000);
             res.status(403).json({
