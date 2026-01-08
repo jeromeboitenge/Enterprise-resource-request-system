@@ -9,7 +9,6 @@ export const authenticate = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        // 1. Check if Authorization header exists
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -19,11 +18,7 @@ export const authenticate = async (
             });
             return;
         }
-
-        // 2. Extract token
         const token = authHeader.split(' ')[1];
-
-        // 3. Verify token signature and expiration using Security.ts utility
         const decoded = verifyToken(token);
 
         // 4. Fetch user from database
