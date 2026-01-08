@@ -199,7 +199,15 @@ export const verifyLogin = async (req: Request, res: Response, next: NextFunctio
 export const getProfile = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const user = await prisma.user.findUnique({
-            where: { id: req.user.id }
+            where: { id: req.user.id },
+            include: {
+                department: {
+                    select: {
+                        name: true,
+                        code: true
+                    }
+                }
+            }
         });
 
         if (!user) {
@@ -215,7 +223,8 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
             password,
             otpHash,
             otpExpiresAt,
-            ...userWithoutPassword
+            departmentId,
+            ...userWithoutSensitiveData
         } = user;
 
         return responseService.response({
@@ -223,7 +232,7 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
             statusCode: 200,
             success: true,
             message: 'Profile retrieved successfully',
-            data: { user: userWithoutPassword }
+            data: { user: userWithoutSensitiveData }
         });
     } catch (error) {
         return next(error);
