@@ -35,8 +35,6 @@ export const authenticate = async (
                 updatedAt: true
             }
         });
-
-        // 5. Check if user exists
         if (!user) {
             res.status(404).json({
                 success: false,
