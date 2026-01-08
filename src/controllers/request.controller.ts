@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import prisma from '../lib/prisma';
-import { RequestStatus } from '../types/request.interface';
+import { RequestService } from '../services/request.service';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
-import { getRequestInclude, getAdminFallback } from '../utils/queryHelpers';
 
 export const createRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -16,28 +14,18 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
             priority
         } = req.body;
 
-        const request = await prisma.request.create({
-            data: {
-                userId: req.user.id,
-                departmentId: req.user.departmentId,
-                title,
-                resourceName,
-                resourceType,
-                description,
-                quantity,
-                estimatedCost,
-                priority,
-                status: RequestStatus.SUBMITTED
-            },
-            include: getRequestInclude()
+        const request = await RequestService.createRequest({
+            userId: req.user.id,
+            departmentId: req.user.departmentId,
+            title,
+            resourceName,
+            resourceType,
+            description,
+            quantity,
+            estimatedCost,
+            priority,
+            userRole: req.user.role // Pass user role for auto-approval logic
         });
-
-        if (!(request.department as any).manager) {
-            const admin = await getAdminFallback(prisma);
-            if (admin && request.department) {
-                (request.department as any).manager = { name: admin.name };
-            }
-        }
 
         res.status(201).json({
             success: true,
@@ -51,24 +39,14 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
 
 export const getMyRequests = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const filter: any = { userId: req.user.id };
-
-        if (req.query.status) {
-            filter.status = req.query.status as string;
-        }
-
         const { page, limit, skip, take } = getPaginationParams(req.query);
+        const filters = { status: req.query.status as string | undefined };
 
-        const [total, requests] = await Promise.all([
-            prisma.request.count({ where: filter }),
-            prisma.request.findMany({
-                where: filter,
-                include: getRequestInclude(),
-                orderBy: { createdAt: 'desc' },
-                skip,
-                take
-            })
-        ]);
+        const { requests, total } = await RequestService.getMyRequests(
+            req.user.id,
+            filters,
+            { skip, take }
+        );
 
         res.status(200).json({
             success: true,
@@ -82,33 +60,18 @@ export const getMyRequests = async (req: Request, res: Response, next: NextFunct
 
 export const getAllRequests = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const filter: any = {};
-        const { role, departmentId } = req.user;
-
-        if (role === 'MANAGER' || role === 'MANAGER') {
-            filter.departmentId = departmentId;
-        }
-
-        if (req.query.status) {
-            filter.status = req.query.status as string;
-        }
-
-        if (req.query.departmentId) {
-            filter.departmentId = req.query.departmentId as string;
-        }
-
         const { page, limit, skip, take } = getPaginationParams(req.query);
+        const filters = {
+            status: req.query.status as string | undefined,
+            departmentId: req.query.departmentId as string | undefined
+        };
 
-        const [total, requests] = await Promise.all([
-            prisma.request.count({ where: filter }),
-            prisma.request.findMany({
-                where: filter,
-                include: getRequestInclude(),
-                orderBy: { createdAt: 'desc' },
-                skip,
-                take
-            })
-        ]);
+        const { requests, total } = await RequestService.getAllRequests(
+            filters,
+            { skip, take },
+            req.user.role,
+            req.user.departmentId
+        );
 
         res.status(200).json({
             success: true,
@@ -122,37 +85,24 @@ export const getAllRequests = async (req: Request, res: Response, next: NextFunc
 
 export const getRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const [request, admin] = await Promise.all([
-            prisma.request.findUnique({
-                where: { id: req.params.id },
-                include: getRequestInclude()
-            }),
-            getAdminFallback(prisma)
-        ]);
-
-        if (request && !(request.department as any).manager && admin) {
-            (request.department as any).manager = { name: admin.name };
-        }
+        const request = await RequestService.getRequestById(req.params.id);
 
         if (!request) {
             res.status(404).json({
                 success: false,
                 message: `Request not found with ID: ${req.params.id}`
             });
+            return;
         }
 
+        const hasPermission = RequestService.checkPermission(request, req.user);
 
-        const isOwner = request!.userId === req.user.id;
-        const isManagerOfDept = (req.user.role === 'MANAGER' || req.user.role === 'MANAGER') &&
-            request!.departmentId === req.user.departmentId;
-        const isAdmin = req.user.role === 'ADMIN';
-        const isFinance = req.user.role === 'finance';
-
-        if (!isOwner && !isManagerOfDept && !isAdmin && !isFinance) {
+        if (!hasPermission) {
             res.status(403).json({
                 success: false,
                 message: 'You do not have permission to view this request'
             });
+            return;
         }
 
         res.status(200).json({
@@ -177,72 +127,41 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
             priority
         } = req.body;
 
-        const existingRequest = await prisma.request.findUnique({
-            where: { id: req.params.id }
-        });
+        const existingRequest = await RequestService.getRequestById(req.params.id);
 
         if (!existingRequest) {
             res.status(404).json({
                 success: false,
                 message: `Request not found with ID: ${req.params.id}`
             });
+            return;
         }
 
+        const hasPermission = RequestService.checkPermission(existingRequest, req.user);
 
-        const isOwner = existingRequest!.userId === req.user.id;
-        const isManagerOfDept = (req.user.role === 'MANAGER' || req.user.role === 'MANAGER') &&
-            existingRequest!.departmentId === req.user.departmentId;
-        const isAdmin = req.user.role === 'ADMIN';
-
-        if (!isOwner && !isManagerOfDept && !isAdmin) {
+        if (!hasPermission) {
             res.status(403).json({
                 success: false,
                 message: 'You do not have permission to update this request'
             });
+            return;
         }
 
-        const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.SUBMITTED, RequestStatus.REJECTED];
-        if (!allowedStatuses.includes(existingRequest!.status as any)) {
+        const statusValidation = RequestService.validateStatusTransition(existingRequest.status, 'update');
+
+        if (!statusValidation.allowed) {
             res.status(400).json({
                 success: false,
-                message: `Cannot update request with status: ${existingRequest!.status}. Request is likely already approved or processing.`
+                message: statusValidation.message
             });
+            return;
         }
 
-
-        let dataToUpdate: any = {};
-
-        if (existingRequest!.status === RequestStatus.SUBMITTED) {
-            if (description !== undefined) dataToUpdate.description = description;
-
-
-            if (Object.keys(dataToUpdate).length === 0) {
-                res.status(400).json({
-                    success: false,
-                    message: 'For submitted requests, only the description (optional field) can be modified.'
-                });
-            }
-
-        } else {
-            dataToUpdate = {
-                title,
-                resourceName,
-                resourceType,
-                description,
-                quantity,
-                estimatedCost,
-                priority
-            };
-        }
-
-        const request = await prisma.request.update({
-            where: { id: req.params.id },
-            data: dataToUpdate,
-            include: {
-                user: { select: { name: true, email: true, role: true } },
-                department: { select: { name: true, code: true } }
-            }
-        });
+        const request = await RequestService.updateRequest(
+            req.params.id,
+            { title, resourceName, resourceType, description, quantity, estimatedCost, priority },
+            existingRequest.status
+        );
 
         res.status(200).json({
             success: true,
@@ -256,40 +175,37 @@ export const updateRequest = async (req: Request, res: Response, next: NextFunct
 
 export const deleteRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const existingRequest = await prisma.request.findUnique({
-            where: { id: req.params.id }
-        });
+        const existingRequest = await RequestService.getRequestById(req.params.id);
 
         if (!existingRequest) {
             res.status(404).json({
                 success: false,
                 message: `Request not found with ID: ${req.params.id}`
             });
+            return;
         }
 
-        const isOwner = existingRequest!.userId === req.user.id;
-        const isManagerOfDept = (req.user.role === 'MANAGER' || req.user.role === 'MANAGER') &&
-            existingRequest!.departmentId === req.user.departmentId;
-        const isAdmin = req.user.role === 'ADMIN';
+        const hasPermission = RequestService.checkPermission(existingRequest, req.user);
 
-        if (!isOwner && !isManagerOfDept && !isAdmin) {
+        if (!hasPermission) {
             res.status(403).json({
                 success: false,
                 message: 'You do not have permission to delete this request'
             });
+            return;
         }
 
-        const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.SUBMITTED, RequestStatus.REJECTED];
-        if (!allowedStatuses.includes(existingRequest!.status as any)) {
+        const statusValidation = RequestService.validateStatusTransition(existingRequest.status, 'delete');
+
+        if (!statusValidation.allowed) {
             res.status(400).json({
                 success: false,
-                message: `Cannot delete request with status: ${existingRequest!.status}. Request has likely already been approved.`
+                message: statusValidation.message
             });
+            return;
         }
 
-        await prisma.request.delete({
-            where: { id: req.params.id }
-        });
+        await RequestService.deleteRequest(req.params.id);
 
         res.status(200).json({
             success: true,
@@ -303,40 +219,35 @@ export const deleteRequest = async (req: Request, res: Response, next: NextFunct
 
 export const submitRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const existingRequest = await prisma.request.findUnique({
-            where: { id: req.params.id }
-        });
+        const existingRequest = await RequestService.getRequestById(req.params.id);
 
         if (!existingRequest) {
             res.status(404).json({
                 success: false,
                 message: `Request not found with ID: ${req.params.id}`
             });
+            return;
         }
 
-        if (existingRequest!.userId !== req.user.id) {
+        if (existingRequest.userId !== req.user.id) {
             res.status(403).json({
                 success: false,
                 message: 'You can only submit your own requests'
             });
+            return;
         }
 
-        const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.REJECTED];
-        if (!allowedStatuses.includes(existingRequest!.status as any)) {
+        const statusValidation = RequestService.validateStatusTransition(existingRequest.status, 'submit');
+
+        if (!statusValidation.allowed) {
             res.status(400).json({
                 success: false,
-                message: `Cannot submit request with status: ${existingRequest!.status}. Only draft or rejected requests can be submitted.`
+                message: statusValidation.message
             });
+            return;
         }
 
-        const request = await prisma.request.update({
-            where: { id: req.params.id },
-            data: { status: RequestStatus.SUBMITTED },
-            include: {
-                user: { select: { name: true, email: true, role: true } },
-                department: { select: { name: true } }
-            }
-        });
+        const request = await RequestService.submitRequest(req.params.id);
 
         res.status(200).json({
             success: true,
@@ -350,41 +261,35 @@ export const submitRequest = async (req: Request, res: Response, next: NextFunct
 
 export const cancelRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const existingRequest = await prisma.request.findUnique({
-            where: { id: req.params.id }
-        });
+        const existingRequest = await RequestService.getRequestById(req.params.id);
 
         if (!existingRequest) {
             res.status(404).json({
                 success: false,
                 message: `Request not found with ID: ${req.params.id}`
             });
+            return;
         }
 
-        if (existingRequest!.userId !== req.user.id) {
+        if (existingRequest.userId !== req.user.id) {
             res.status(403).json({
                 success: false,
                 message: 'You can only cancel your own requests'
             });
+            return;
         }
 
-        const allowedStatuses = [RequestStatus.DRAFT, RequestStatus.SUBMITTED, RequestStatus.SEMI_APPROVED];
-        if (!allowedStatuses.includes(existingRequest!.status as any)) {
+        const statusValidation = RequestService.validateStatusTransition(existingRequest.status, 'cancel');
+
+        if (!statusValidation.allowed) {
             res.status(400).json({
                 success: false,
-                message: `Cannot cancel request with status: ${existingRequest!.status}. Only draft, submitted, or under review requests can be cancelled.`
+                message: statusValidation.message
             });
             return;
         }
 
-        const request = await prisma.request.update({
-            where: { id: req.params.id },
-            data: { status: RequestStatus.REJECTED },
-            include: {
-                user: { select: { name: true, email: true, role: true } },
-                department: { select: { name: true } }
-            }
-        });
+        const request = await RequestService.cancelRequest(req.params.id);
 
         res.status(200).json({
             success: true,
@@ -398,29 +303,14 @@ export const cancelRequest = async (req: Request, res: Response, next: NextFunct
 
 export const getDepartmentRequests = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const filter: any = {};
-
-
-        if (req.user.departmentId) {
-            filter.departmentId = req.user.departmentId;
-        }
-
-        if (req.query.status) {
-            filter.status = req.query.status as string;
-        }
-
         const { page, limit, skip, take } = getPaginationParams(req.query);
+        const filters = { status: req.query.status as string | undefined };
 
-        const [total, requests] = await Promise.all([
-            prisma.request.count({ where: filter }),
-            prisma.request.findMany({
-                where: filter,
-                include: getRequestInclude(),
-                orderBy: { createdAt: 'desc' },
-                skip,
-                take
-            })
-        ]);
+        const { requests, total } = await RequestService.getDepartmentRequests(
+            req.user.departmentId,
+            filters,
+            { skip, take }
+        );
 
         res.status(200).json({
             success: true,

@@ -40,57 +40,67 @@ enum NotificationType {
 }
 
 model User {
-  id                  String    @id @default(uuid())
-  name                String    @db.VarChar(100)
-  email               String    @unique @db.VarChar(255)
-  password            String    @db.VarChar(255)
-  role                UserRole  @default(EMPLOYEE)
-  departmentId        String    @map("department_id")
+  id       String   @id @default(uuid())
+  name     String   @db.VarChar(100)
+  email    String   @unique @db.VarChar(255)
+  password String   @db.VarChar(255)
+  role     UserRole @default(EMPLOYEE)
+
+  departmentId String @map("department_id")
+
   isActive            Boolean   @default(true) @map("is_active")
   failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
   accountLockedUntil  DateTime? @map("account_locked_until")
 
-  // OTP (hashed)
-  otpHash      String?   @map("otp_hash")
-  otpExpiresAt DateTime? @map("otp_expires_at")
-  otpVerified  Boolean   @default(false) @map("otp_verified")
+  otpHash      String?
+  otpExpiresAt DateTime?
+  otpVerified  Boolean   @default(false)
 
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   // Relations
-  department         Department     @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  managedDepartments Department[]   @relation("DepartmentManager")
+  department         Department          @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  managedDepartments DepartmentManager[]
   requests           Request[]
   approvals          Approval[]
-  processedPayments  Payment[]
+  payments           Payment[]
   notifications      Notification[]
 
-  @@index([departmentId])
-  @@index([role])
-  @@index([isActive])
-  @@index([email])
-  @@index([role, isActive])
   @@map("users")
 }
 
 model Department {
-  id          String    @id @default(uuid())
-  name        String    @unique @db.VarChar(100)
-  code        String?   @unique @db.VarChar(50)
-  description String?   @db.Text
-  managerId   String    @map("manager_id")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
+  id          String  @id @default(uuid())
+  name        String  @unique @db.VarChar(100)
+  code        String? @unique @db.VarChar(50)
+  description String? @db.Text
 
-  manager  User      @relation("DepartmentManager", fields: [managerId], references: [id], onDelete: Restrict)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
   users    User[]
+  managers DepartmentManager[]
   requests Request[]
 
-  @@index([managerId])
   @@map("departments")
+}
+
+model DepartmentManager {
+  id           String @id @default(uuid())
+  userId       String
+  departmentId String
+
+  assignedAt DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, departmentId])
+  @@index([departmentId])
+  @@map("department_managers")
 }
 
 model Request {

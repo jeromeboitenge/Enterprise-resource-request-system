@@ -9,7 +9,7 @@ import { generateEmailHtml } from '../utils/email.templates';
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { name, email, password, role, department } = req.body;
+        const { name, email, password, role } = req.body;
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
@@ -21,10 +21,20 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 
         const hashedPassword = await bcrypt.hash(password, 12);
 
-        const userDepartment = department || 'IT';
-
         const otp = generateOTP();
         const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+        const itDepartment = await prisma.department.findFirst({
+            where: { name: 'IT' }
+        });
+
+        if (!itDepartment) {
+            res.status(500).json({
+                success: false,
+                message: 'IT department not found. Please contact administrator.'
+            });
+            return;
+        }
 
         const user = await prisma.user.create({
             data: {
@@ -32,12 +42,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
                 email,
                 password: hashedPassword,
                 role: role || 'EMPLOYEE',
-                department: {
-                    connectOrCreate: {
-                        where: { name: userDepartment },
-                        create: { name: userDepartment }
-                    }
-                },
+                departmentId: itDepartment.id, // All users go to IT department
                 otpHash: otp,
                 otpExpiresAt
             }

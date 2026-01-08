@@ -1,25 +1,25 @@
 import { Request, Response, NextFunction } from 'express';
-import prisma from '../lib/prisma';
+import { DepartmentService } from '../services/department.service';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 
 export const createDepartment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { name, description } = req.body;
 
-        const existingDepartment = await prisma.department.findUnique({
-            where: { name }
-        });
+        const exists = await DepartmentService.checkDepartmentExists(name);
 
-        if (existingDepartment) {
+        if (exists) {
             res.status(409).json({
                 success: false,
                 message: 'Department with this name already exists'
             });
+            return;
         }
 
-        const department = await prisma.department.create({
-            data: { name, description }
-        });
+        const department = await DepartmentService.createDepartment(
+            { name, description },
+            req.user.id
+        );
 
         res.status(201).json({
             success: true,
@@ -35,14 +35,7 @@ export const getAllDepartments = async (req: Request, res: Response, next: NextF
     try {
         const { page, limit, skip, take } = getPaginationParams(req.query);
 
-        const [total, departments] = await Promise.all([
-            prisma.department.count(),
-            prisma.department.findMany({
-                orderBy: { name: 'asc' },
-                skip,
-                take
-            })
-        ]);
+        const { departments, total } = await DepartmentService.getAllDepartments({ skip, take });
 
         res.status(200).json({
             success: true,
@@ -56,15 +49,14 @@ export const getAllDepartments = async (req: Request, res: Response, next: NextF
 
 export const getDepartment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const department = await prisma.department.findUnique({
-            where: { id: req.params.id }
-        });
+        const department = await DepartmentService.getDepartmentById(req.params.id);
 
         if (!department) {
             res.status(404).json({
                 success: false,
                 message: 'Department not found'
             });
+            return;
         }
 
         res.status(200).json({
@@ -82,36 +74,27 @@ export const updateDepartment = async (req: Request, res: Response, next: NextFu
         const { name, description } = req.body;
 
         if (name) {
-            const existingDepartment = await prisma.department.findUnique({ where: { name } });
+            const exists = await DepartmentService.checkDepartmentExists(name, req.params.id);
 
-            if (existingDepartment) {
-                const isSameDepartment = existingDepartment.id === req.params.id;
-
-                if (!isSameDepartment) {
-                    res.status(409).json({
-                        success: false,
-                        message: 'Department with this name already exists'
-                    });
-                }
+            if (exists) {
+                res.status(409).json({
+                    success: false,
+                    message: 'Department with this name already exists'
+                });
+                return;
             }
         }
 
-        const deptExists = await prisma.department.findUnique({ where: { id: req.params.id } });
+        const deptExists = await DepartmentService.getDepartmentById(req.params.id);
         if (!deptExists) {
             res.status(404).json({
                 success: false,
                 message: 'Department not found'
             });
+            return;
         }
 
-        const updateData: any = {};
-        if (name) updateData.name = name;
-        if (description) updateData.description = description;
-
-        const department = await prisma.department.update({
-            where: { id: req.params.id },
-            data: updateData
-        });
+        const department = await DepartmentService.updateDepartment(req.params.id, { name, description });
 
         res.status(200).json({
             success: true,
@@ -125,18 +108,17 @@ export const updateDepartment = async (req: Request, res: Response, next: NextFu
 
 export const deleteDepartment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const deptExists = await prisma.department.findUnique({ where: { id: req.params.id } });
+        const deptExists = await DepartmentService.getDepartmentById(req.params.id);
 
         if (!deptExists) {
             res.status(404).json({
                 success: false,
                 message: 'Department not found'
             });
+            return;
         }
 
-        const department = await prisma.department.delete({
-            where: { id: req.params.id }
-        });
+        const department = await DepartmentService.deleteDepartment(req.params.id);
 
         res.status(200).json({
             success: true,

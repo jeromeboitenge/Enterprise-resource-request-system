@@ -84,12 +84,12 @@ export const attachAdminAsManager = (items: any[], admin: { name: string } | nul
     if (!admin) return items;
 
     return items.map(item => {
-        if (item.department && !item.department.manager) {
+        if (item.department && (!item.department.managers || item.department.managers.length === 0)) {
             return {
                 ...item,
                 department: {
                     ...item.department,
-                    manager: { name: admin.name }
+                    managers: [{ user: { name: admin.name } }]
                 }
             };
         }
@@ -117,10 +117,14 @@ export const getRequestInclude = (includeUser = true, includeDepartment = true) 
                 id: true,
                 name: true,
                 code: true,
-                manager: {
+                managers: {
                     select: {
-                        id: true,
-                        name: true
+                        user: {
+                            select: {
+                                id: true,
+                                name: true
+                            }
+                        }
                     }
                 }
             }

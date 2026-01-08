@@ -6,6 +6,11 @@ import {
     updateDepartment,
     deleteDepartment
 } from '../controllers/department.controller';
+import {
+    assignManager,
+    removeManager,
+    getDepartmentManagers
+} from '../controllers/department-manager.controller';
 import { authenticate } from '../auth/auth.middleware';
 import { authorize } from '../auth/authorize.middleware';
 import { validate } from '../middleware/validate';
@@ -36,4 +41,20 @@ router.put(
 
 router.delete('/:id', authorize(Roles.ADMIN), deleteDepartment);
 
+// Department Manager Management Routes
+router.get('/:departmentId/managers', getDepartmentManagers);
+
+router.post(
+    '/:departmentId/managers',
+    authorize(Roles.ADMIN),
+    assignManager
+);
+
+router.delete(
+    '/:departmentId/managers/:userId',
+    authorize(Roles.ADMIN),
+    removeManager
+);
+
 export default router;
+
