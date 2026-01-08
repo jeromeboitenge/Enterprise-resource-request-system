@@ -9,9 +9,7 @@ import { config } from "./config";
 import { validateEnv } from "./config/env.validator";
 import { mainRouter } from "./routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
-import { apiLimiter } from "./middleware/rate-limiter.middleware";
-import { sanitizeInput, customSanitize } from "./middleware/sanitize.middleware";
-import { requestIdMiddleware } from "./middleware/request-id.middleware";
+import { apiLimiter } from "./middleware/loginLimitations";
 import logger from "./utils/logger";
 import prisma from './lib/prisma';
 import { swaggerSpec } from "./config/swagger";
@@ -24,8 +22,6 @@ try {
 }
 
 const app: Express = express();
-
-app.use(requestIdMiddleware);
 
 app.use(helmet({
     contentSecurityPolicy: {
@@ -59,9 +55,6 @@ app.use(morgan("combined", {
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-app.use(sanitizeInput);
-app.use(customSanitize);
 
 app.use(config.prefix, apiLimiter);
 

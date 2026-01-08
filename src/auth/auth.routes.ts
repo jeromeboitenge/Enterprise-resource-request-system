@@ -13,7 +13,7 @@ import {
 import { authenticate } from './auth.middleware';
 import { validate } from '../middleware/validate';
 import { createUserSchema, loginSchema, changePasswordSchema, resetPasswordWithEmailSchema } from '../validator/user.validation';
-import { authLimiter, strictLimiter } from '../middleware/rate-limiter.middleware';
+import { authLimiter, strictLimiter } from '../middleware/loginLimitations';
 
 const router = Router();
 

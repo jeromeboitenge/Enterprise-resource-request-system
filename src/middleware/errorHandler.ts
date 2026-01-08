@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import { Prisma } from '@prisma/client';
 
 export const errorHandler = (
     err: any,
@@ -10,24 +9,6 @@ export const errorHandler = (
     let statusCode = err.statusCode || 500;
     let message = err.message || 'Something went wrong';
     let errors = err.errors;
-
-
-    if (err instanceof Prisma.PrismaClientKnownRequestError) {
-        if (err.code === 'P2002') {
-            statusCode = 409;
-            const target = (err.meta as any)?.target;
-            message = target ? `${target} already exists` : 'Record with this unique field already exists';
-        }
-        if (err.code === 'P2025') {
-            statusCode = 404;
-            message = 'Record not found';
-        }
-        if (err.code === 'P2003') {
-            statusCode = 400;
-            const field = (err.meta as any)?.field_name;
-            message = field ? `Foreign key constraint failed on field: ${field}` : 'Related record not found (invalid ID provided)';
-        }
-    }
 
     if (err.name === 'JsonWebTokenError') {
         statusCode = 401;

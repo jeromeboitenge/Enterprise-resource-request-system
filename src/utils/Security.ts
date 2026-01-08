@@ -15,24 +15,15 @@ export const comparePassword = async (
     return bcrypt.compare(password, db_password)
 }
 
-export const generateToken = async ({ id, role }: generateTokenPayload) => {
-    return jwt.sign(
-        {
-            sub: id,
-            role,
-        },
-        config.jwtSecret,
-        { expiresIn: "1hr" }
-    );
-};
 
 export const generateOTP = (): string => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     return otp;
 };
-import jwt from 'jsonwebtoken';
-import { config } from '../config';
+export const OtpExpiration = () => {
+    return new Date(Date.now() + 10 * 60 * 1000);
+}
 
 interface TokenPayload {
     userId: string;
@@ -48,7 +39,7 @@ export const generateAuthToken = (userId: string, role: string): string => {
     return jwt.sign(
         payload,
         config.jwtSecret,
-        { expiresIn: '1d' } // 1 day expiration
+        { expiresIn: '1h' } // 1 day expiration
     );
 };
 

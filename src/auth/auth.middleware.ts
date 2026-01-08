@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { verifyToken } from '../utils/Security';
 
 
 export const authenticate = async (
@@ -23,8 +23,8 @@ export const authenticate = async (
         // 2. Extract token
         const token = authHeader.split(' ')[1];
 
-        // 3. Verify token signature and expiration
-        const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+        // 3. Verify token signature and expiration using Security.ts utility
+        const decoded = verifyToken(token);
 
         // 4. Fetch user from database
         const user = await prisma.user.findUnique({
