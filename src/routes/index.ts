@@ -6,6 +6,7 @@ import approvalRoutes from "./approval.routes";
 import paymentRoutes from "./payment.routes";
 import notificationRoutes from "./notification.routes";
 import userRoutes from "./user.routes";
+import paymentMethodRoutes from "./payment-method.routes";
 
 
 const mainRouter = express.Router();
@@ -17,5 +18,6 @@ mainRouter.use('/approvals', approvalRoutes);
 mainRouter.use('/payments', paymentRoutes);
 mainRouter.use('/notifications', notificationRoutes);
 mainRouter.use('/users', userRoutes);
+mainRouter.use('/payment-methods', paymentMethodRoutes);
 
 export { mainRouter };
