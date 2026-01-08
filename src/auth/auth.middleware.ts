@@ -38,12 +38,11 @@ export const authenticate = async (
         if (!user) {
             res.status(404).json({
                 success: false,
-                message: 'User not found. Your account may have been deleted. Please contact administrator.'
+                message: 'User not found.'
             });
             return;
         }
 
-        // 6. Check if account is active
         if (!user.isActive) {
             res.status(403).json({
                 success: false,
