@@ -100,7 +100,6 @@ export const authenticate = async (
             return;
         }
 
-        // Generic authentication error
         res.status(401).json({
             success: false,
             message: 'Authentication failed. Please login again.',
