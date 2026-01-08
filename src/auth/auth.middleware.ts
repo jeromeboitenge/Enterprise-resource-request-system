@@ -58,8 +58,7 @@ export const authenticate = async (
             });
             return;
         }
-
-        // 8. Verify role matches (security check for role changes)
+        //verifying roles
         if (user.role !== decoded.role) {
             res.status(401).json({
                 success: false,
