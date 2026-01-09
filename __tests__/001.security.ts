@@ -24,7 +24,7 @@ describe('comparePasswords', () => {
     })
     test('returns false for different password', async () => {
         const password = 'Password'
-        const wrongPassword = 'password'
+        const wrongPassword = 'Passward'
         const hashed = hashPassword(password)
         expect(comparePassword(hashed, wrongPassword)).toBe(false)
     })
