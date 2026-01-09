@@ -1,5 +1,5 @@
 import { expect, test, describe } from '@jest/globals'
-import { hashPassword } from '../src/utils/Security'
+import { comparePassword, hashPassword } from '../src/utils/Security'
 
 describe('security ', () => {
     test('hashing password returns string', () => {
@@ -14,5 +14,12 @@ describe('security ', () => {
         const hash1 = hashPassword(password)
         const hash2 = hashPassword(password)
         expect(hash1).not.toBe(hash2)
+    })
+})
+describe('comparePasswords', () => {
+    test('compare password', () => {
+        const password = 'booitenge';
+        const hashed = hashPassword(password)
+        expect(comparePassword(hashed, password)).toBeTruthy()
     })
 })
