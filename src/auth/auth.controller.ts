@@ -94,7 +94,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             });
         }
 
-        const passwordMatch = comparePassword(password, user.password);
+        const passwordMatch = await comparePassword(password, user.password);
 
         if (!passwordMatch) {
             return responseService.response({

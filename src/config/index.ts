@@ -1,1 +1,1 @@
-export { config } from './app.config';
+export { config } from './database.config';
