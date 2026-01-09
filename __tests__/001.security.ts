@@ -20,12 +20,14 @@ describe('comparePasswords', () => {
     test('compare password', async () => {
         const password = 'booitenge';
         const hashed = hashPassword(password)
-        expect(comparePassword(password, hashed)).toBe(true)
+        const result = comparePassword(password, hashed)
+        expect(result).toBe(true)
     })
     test('returns false for different password', async () => {
         const password = 'Password'
         const wrongPassword = 'Passward'
         const hashed = hashPassword(password)
-        expect(comparePassword(wrongPassword, hashed)).toBe(false)
+        const result = await comparePassword(wrongPassword, hashed)
+        expect(result).toBe(false)
     })
 })
