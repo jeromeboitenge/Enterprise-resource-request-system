@@ -2,24 +2,14 @@ import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import swaggerUi from "swagger-ui-express";
 import "dotenv/config";
 
 import { config } from "./config";
-import { validateEnv } from "./config/env.validator";
 import { mainRouter } from "./routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { apiLimiter } from "./middleware/loginLimitations";
 import logger from "./utils/logger";
-import prisma from './lib/prisma';
-import { swaggerSpec } from "./config/swagger";
-
-try {
-    validateEnv();
-} catch (error) {
-    console.error(' Environment validation failed:', error);
-    process.exit(1);
-}
+import prisma from './utils/prisma';
 
 const app: Express = express();
 
@@ -29,7 +19,7 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
             scriptSrc: ["'self'", "'unsafe-inline'"],
-            imgSrc: ["'self'", "data:", "https:", "validator.swagger.io"],
+            imgSrc: ["'self'", "data:", "https:"],
         }
     },
     hsts: {
@@ -38,14 +28,7 @@ app.use(helmet({
         preload: true
     }
 }));
-
-const corsOrigins = process.env.CORS_ORIGIN?.split(',') || ['*'];
-app.use(
-    cors({
-        origin: corsOrigins.includes('*') ? '*' : corsOrigins,
-        credentials: true,
-    })
-);
+app.use(cors());
 
 app.use(morgan("combined", {
     stream: {
@@ -64,11 +47,8 @@ app.get("/", (_req: Request, res: Response) => {
         message: "Enterprise Resource Request System API",
         version: "1.0.0",
         status: "running",
-        documentation: "/api-docs",
     });
 });
-
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use(config.prefix, mainRouter);
 

@@ -1,4 +1,4 @@
-import prisma from '../lib/prisma';
+import prisma from '../utils/prisma';
 import { PaymentMethodType, PaymentMethodData } from '../types/payment-method.interface';
 
 export class PaymentMethodService {

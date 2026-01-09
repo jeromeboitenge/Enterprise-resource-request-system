@@ -1,4 +1,4 @@
-import prisma from '../lib/prisma';
+import prisma from '../utils/prisma';
 import bcrypt from 'bcryptjs';
 
 export class UserService {

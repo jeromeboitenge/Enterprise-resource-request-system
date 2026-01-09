@@ -29,7 +29,7 @@
     },
     "include": [
         "src/**/*"
-    ],
+, "src/utils/sum.test.ts"    ],
     "exclude": [
         "node_modules",
         "dist",

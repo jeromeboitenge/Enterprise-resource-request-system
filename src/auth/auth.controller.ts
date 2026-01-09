@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import prisma from '../lib/prisma';
+import prisma from '../utils/prisma';
 import { sendEmail } from '../utils/email.service';
 import { generateEmailHtml } from '../utils/email.templates';
 import { hashPassword, generateOTP, OtpExpiration, comparePassword } from '../utils/Security';

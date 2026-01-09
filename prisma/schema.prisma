@@ -200,20 +200,18 @@ model PaymentMethod {
   userId String            @map("user_id")
   type   PaymentMethodType
 
-  // Bank details
   bankName      String? @map("bank_name") @db.VarChar(100)
   accountNumber String? @map("account_number") @db.VarChar(50)
   accountName   String? @map("account_name") @db.VarChar(100)
 
-  // PayPal details
   paypalEmail String? @map("paypal_email") @db.VarChar(255)
 
   // Mobile Money details
   phoneNumber String? @map("phone_number") @db.VarChar(20)
   provider    String? @db.VarChar(50)
 
-  isDefault Boolean  @default(false) @map("is_default")
-  isActive  Boolean  @default(true) @map("is_active")
+  isDefault Boolean @default(false) @map("is_default")
+  isActive  Boolean @default(true) @map("is_active")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

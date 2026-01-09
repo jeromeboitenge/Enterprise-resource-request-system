@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import prisma from '../lib/prisma';
+import prisma from '../utils/prisma';
 import { verifyToken } from '../utils/Security';
 
 

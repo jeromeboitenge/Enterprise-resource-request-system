@@ -1,4 +1,4 @@
-import prisma from '../lib/prisma';
+import prisma from '../utils/prisma';
 import { NotificationType } from '../types/notification.interface';
 import { Roles } from '../types/user.interface';
 import logger from '../utils/logger';

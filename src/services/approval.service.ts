@@ -1,4 +1,4 @@
-import prisma from '../lib/prisma';
+import prisma from '../utils/prisma';
 import { RequestStatus } from '../types/request.interface';
 import { getApprovalInclude } from '../utils/queryHelpers';
 
