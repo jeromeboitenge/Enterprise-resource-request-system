@@ -28,7 +28,14 @@ app.use(helmet({
         preload: true
     }
 }));
-app.use(cors());
+
+const corsOrigins = process.env.CORS_ORIGIN?.split(',') || ['*'];
+app.use(
+    cors({
+        origin: corsOrigins.includes('*') ? '*' : corsOrigins,
+        credentials: true,
+    })
+);
 
 app.use(morgan("combined", {
     stream: {

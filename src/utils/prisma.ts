@@ -1,11 +1,12 @@
 import { PrismaClient } from '@prisma/client';
+import { config } from '../config';
 
 const prismaClientSingleton = () => {
     return new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
         datasources: {
             db: {
-                url: process.env.DATABASE_URL,
+                url: config.database.url,
             },
         },
     });
@@ -16,9 +17,6 @@ declare global {
 }
 
 const prisma = globalThis.prisma ?? prismaClientSingleton();
-
-// Configure connection pool limits
-prisma.$connect();
 
 export default prisma;
 
