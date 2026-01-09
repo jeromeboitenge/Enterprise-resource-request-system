@@ -1,9 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-/**
- * Get the appropriate database URL based on the current environment
- */
 const getDatabaseUrl = (): string => {
     const env = process.env.NODE_ENV || "development";
 
@@ -44,7 +41,7 @@ export const config = {
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || "24h",
     corsOrigin: process.env.CORS_ORIGIN || "*",
 
-    // Database configuration - dynamically selected based on NODE_ENV
+
     database: {
         url: getDatabaseUrl(),
     },
