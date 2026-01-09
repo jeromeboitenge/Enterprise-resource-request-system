@@ -1,4 +1,5 @@
 import express, { Express, Request, Response } from "express";
+import morgan from "morgan";
 import "dotenv/config";
 
 import { config } from "./config";
@@ -9,6 +10,13 @@ import logger from "./utils/logger";
 import prisma from './utils/prisma';
 
 const app: Express = express();
+
+
+app.use(morgan("combined", {
+    stream: {
+        write: (message: string) => logger.info(message.trim())
+    }
+}));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
